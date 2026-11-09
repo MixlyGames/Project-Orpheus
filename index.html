@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <title>Orpheus</title>
+    <script type="module" src="/src/main.ts" defer></script>
+  </head>
+
+  <body data-nav="left">
+    <div class="bg" aria-hidden="true">
+      <canvas id="bg-canvas"></canvas>
+      <span class="grain"></span>
+      <span class="vignette"></span>
+    </div>
+
+    <header class="titlebar" data-tauri-drag-region>
+      <span class="titlebar-name" data-tauri-drag-region>Orpheus</span>
+      <div class="win-controls">
+        <button class="win-btn" id="win-min" type="button" aria-label="Свернуть">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4.5 8h7" />
+          </svg>
+        </button>
+        <button class="win-btn" id="win-max" type="button" aria-label="Развернуть">
+          <!-- развернуть: четыре угла наружу -->
+          <svg class="ico-max" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6V4.5A1.5 1.5 0 0 1 4.5 3H6" />
+            <path d="M10 3h1.5A1.5 1.5 0 0 1 13 4.5V6" />
+            <path d="M13 10v1.5a1.5 1.5 0 0 1-1.5 1.5H10" />
+            <path d="M6 13H4.5A1.5 1.5 0 0 1 3 11.5V10" />
+          </svg>
+          <!-- восстановить: четыре угла внутрь -->
+          <svg class="ico-restore" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 3v1.5A1.5 1.5 0 0 1 4.5 6H3" />
+            <path d="M13 6h-1.5A1.5 1.5 0 0 1 10 4.5V3" />
+            <path d="M10 13v-1.5a1.5 1.5 0 0 1 1.5-1.5H13" />
+            <path d="M3 10h1.5A1.5 1.5 0 0 1 6 11.5V13" />
+          </svg>
+        </button>
+        <button class="win-btn win-close" id="win-close" type="button" aria-label="Закрыть">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M4.5 4.5l7 7M11.5 4.5l-7 7" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="stage">
+      <!-- Одна постоянная карточка: меняется только содержимое шагов -->
+      <div class="card" id="card">
+        <!-- Точки прогресса: общие для шагов «имя» и «о себе» -->
+        <div class="dots" id="dots" data-pos="0" aria-hidden="true">
+          <span class="dot dot-a"></span>
+          <span class="dot dot-b"></span>
+          <span class="dot-thumb" id="dot-thumb"></span>
+        </div>
+
+        <div class="steps" id="steps">
+          <!-- Шаг 0: приветствие -->
+          <section class="step" id="welcome" data-step="welcome">
+            <p class="eyebrow">Добро пожаловать в</p>
+            <h1 class="title">Project Orpheus</h1>
+            <p class="subtitle">Твой личный собеседник и помощник на базе ЛЛМ.</p>
+            <button class="enter" id="enter" type="button">Начать</button>
+          </section>
+
+          <!-- Шаг 1: никнейм -->
+          <section class="step" data-step="name" inert aria-hidden="true">
+            <p class="eyebrow">Знакомство</p>
+            <h1 class="title title-sm">Как к тебе обращаться?</h1>
+            <p class="subtitle">Имя хранится только на этом компьютере.</p>
+            <label class="field">
+              <span class="field-label">Никнейм</span>
+              <input class="input" id="nick" type="text" maxlength="24" autocomplete="off" spellcheck="false" placeholder="Твоё имя или ник" />
+            </label>
+            <p class="hint" id="nick-hint" aria-live="polite"></p>
+            <div class="actions">
+              <button class="ghost" id="name-back" type="button">Назад</button>
+              <button class="enter" id="name-next" type="button">Дальше</button>
+            </div>
+          </section>
+
+          <!-- Шаг 2: коротко о себе -->
+          <section class="step" data-step="about" inert aria-hidden="true">
+            <p class="eyebrow">Знакомство</p>
+            <h1 class="title title-sm">Расскажи о себе</h1>
+            <p class="subtitle">Пара слов об интересах, и разговор получится живее. Можно пропустить.</p>
+            <label class="field">
+              <span class="field-label">О себе</span>
+              <textarea class="textarea" id="about" maxlength="400" spellcheck="false" placeholder="Например, чем увлекаешься, что любишь, чем занимаешься"></textarea>
+            </label>
+            <p class="hint"><span>Ctrl + Enter, чтобы продолжить</span><span id="about-count">0 / 400</span></p>
+            <div class="actions">
+              <button class="ghost" id="about-back" type="button">Назад</button>
+              <button class="ghost" id="about-skip" type="button">Пропустить</button>
+              <button class="enter" id="about-done" type="button">Готово</button>
+            </div>
+          </section>
+
+          <!-- Шаг 3: готово -->
+          <section class="step" data-step="done" inert aria-hidden="true">
+            <p class="eyebrow">Приятно познакомиться,</p>
+            <h1 class="title" id="done-nick"></h1>
+            <p class="subtitle">Профиль сохранён на этом компьютере. Дальше откроется чат.</p>
+            <div class="actions">
+              <button class="ghost" id="done-edit" type="button">Изменить</button>
+              <button class="enter" id="done-continue" type="button">Продолжить</button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <!-- Панель кнопок: слева вертикально или сверху горизонтально (настраивается) -->
+    <nav class="dock" id="dock" aria-label="Разделы" inert aria-hidden="true">
+      <span class="dock-thumb" id="dock-thumb" aria-hidden="true"></span>
+
+      <button class="dock-btn is-active" type="button" data-view="chat" title="Чат (Ctrl+1)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 4.5A1.5 1.5 0 0 1 4.5 3h7A1.5 1.5 0 0 1 13 4.5v5a1.5 1.5 0 0 1-1.5 1.5H8l-3 2.5V11h-.5A1.5 1.5 0 0 1 3 9.5z" />
+        </svg>
+        <span class="dock-label">Чат</span>
+      </button>
+      <button class="dock-btn" type="button" data-view="history" title="История (Ctrl+2)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="8" cy="8" r="5.5" />
+          <path d="M8 5v3.2l2 1.3" />
+        </svg>
+        <span class="dock-label">История</span>
+      </button>
+      <button class="dock-btn" type="button" data-view="avatar" title="Аватар (Ctrl+3)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="8" cy="5.5" r="2.5" />
+          <path d="M3.2 13c.6-2.4 2.4-3.6 4.8-3.6s4.2 1.2 4.8 3.6" />
+        </svg>
+        <span class="dock-label">Аватар</span>
+      </button>
+      <button class="dock-btn" type="button" data-view="control" title="Управление (Ctrl+4)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 5h4M12 5h1M3 11h1M8 11h5" />
+          <circle cx="9.5" cy="5" r="1.7" />
+          <circle cx="6.5" cy="11" r="1.7" />
+        </svg>
+        <span class="dock-label">Управление</span>
+      </button>
+      <button class="dock-btn" type="button" data-view="settings" title="Настройки (Ctrl+5)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="8" cy="8" r="2.1" />
+          <path d="M8 2v1.6M8 12.4V14M2 8h1.6M12.4 8H14M3.8 3.8l1.1 1.1M11.1 11.1l1.1 1.1M12.2 3.8l-1.1 1.1M4.9 11.1l-1.1 1.1" />
+        </svg>
+        <span class="dock-label">Настройки</span>
+      </button>
+    </nav>
+
+    <!-- Главный экран -->
+    <div class="app" id="app" inert aria-hidden="true">
+      <div class="views" id="views">
+        <!-- Чат -->
+        <section class="view is-active" data-view="chat">
+          <div class="chat-wrap">
+          <div class="chat is-empty" id="chat">
+            <div class="chat-head">
+              <span class="chat-title" id="chat-title">Новый чат</span>
+              <button class="head-btn" id="new-chat" type="button">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+                  <path d="M8 3.5v9M3.5 8h9" />
+                </svg>
+                Новый чат
+              </button>
+              <span class="badge" title="Модель пока не подключена">Заглушка</span>
+            </div>
+
+            <div class="chat-body">
+              <!-- Стартовый экран -->
+              <div class="empty" id="empty">
+                <!-- Только текст: на стартовом экране без шара -->
+
+                <h2 class="title title-sm" id="empty-title">Привет</h2>
+                <p class="subtitle" id="empty-sub">О чём поговорим?</p>
+              </div>
+
+              <div class="chips" id="chips">
+                <button class="chip" type="button" data-prompt="Расскажи, что ты умеешь">Что ты умеешь?</button>
+                <button class="chip" type="button" data-prompt="Придумай идею для небольшого проекта на выходные">Идея для проекта</button>
+                <button class="chip" type="button" data-prompt="Объясни простыми словами, как работают нейросети">Как работают нейросети</button>
+                <button class="chip" type="button" data-prompt="Помоги составить план на неделю">План на неделю</button>
+              </div>
+
+              <div class="scroller" id="scroller">
+                <div class="thread" id="thread" aria-live="polite"></div>
+              </div>
+
+              <div class="composer-wrap" id="composer-wrap">
+                <div class="composer">
+                  <textarea id="composer-input" rows="1" maxlength="8000" spellcheck="false" placeholder="Напиши Orpheus…"></textarea>
+                  <button class="send" id="send" type="button" aria-label="Отправить" disabled>
+                    <svg class="ico-send" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M8 13V3M3.5 7.5L8 3l4.5 4.5" />
+                    </svg>
+                    <svg class="ico-stop" viewBox="0 0 16 16" fill="currentColor">
+                      <rect x="4" y="4" width="8" height="8" rx="2" />
+                    </svg>
+                  </button>
+                </div>
+                <p class="composer-hint">Enter — отправить, Shift + Enter — новая строка</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Окошко Орфеи в правом углу. Пока заглушка, позже сюда придёт её картинка. -->
+          <aside class="agent" aria-label="Orpheus">
+            <div class="agent-view" id="agent-view">
+              <svg class="agent-star" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 2C12.8 8.2 15.8 11.2 22 12C15.8 12.8 12.8 15.8 12 22C11.2 15.8 8.2 12.8 2 12C8.2 11.2 11.2 8.2 12 2Z" />
+              </svg>
+              <span class="agent-tag"><i></i>Orpheus</span>
+            </div>
+          </aside>
+          </div>
+        </section>
+
+        <!-- История -->
+        <section class="view" data-view="history" inert aria-hidden="true">
+          <div class="page">
+            <div class="page-inner">
+              <header class="page-head">
+                <h2 class="title title-sm">История</h2>
+                <p class="subtitle">Все твои разговоры с Orpheus.</p>
+              </header>
+
+              <input class="input" id="history-search" type="search" autocomplete="off" spellcheck="false" placeholder="Поиск по чатам" />
+
+              <div class="hlist" id="history-list"></div>
+
+              <div class="empty-block" id="history-empty" hidden>
+                <p class="empty-note">Здесь появятся твои разговоры.</p>
+                <button class="btn" id="history-start" type="button">Начать чат</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Аватар -->
+        <section class="view" data-view="avatar" inert aria-hidden="true">
+          <div class="page">
+            <div class="page-inner">
+              <header class="page-head">
+                <h2 class="title title-sm">Аватар</h2>
+                <p class="subtitle">Лицо и голос Orpheus.</p>
+              </header>
+
+              <div class="panel avatar-stage">
+                <div class="orb-wrap orb-big" aria-hidden="true">
+                  <span class="ring"></span>
+                  <span class="ring ring-2"></span>
+                  <span class="orb"></span>
+                </div>
+                <p class="avatar-title">Аватар пока не подключён</p>
+                <p class="avatar-desc">Здесь появится 3D-модель (VRM) или 2D-персонаж, который будет двигаться и говорить вместе с чатом.</p>
+                <div class="chips-static">
+                  <span class="status">3D · VRM</span>
+                  <span class="status">2D · Live2D</span>
+                  <span class="status">Питомец на рабочем столе</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Управление -->
+        <section class="view" data-view="control" inert aria-hidden="true">
+          <div class="page">
+            <div class="page-inner">
+              <header class="page-head">
+                <h2 class="title title-sm">Управление</h2>
+                <p class="subtitle">Модули Orpheus и их состояние.</p>
+              </header>
+
+              <div class="cards">
+                <article class="mod">
+                  <span class="mod-ico" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="10" height="10" rx="2.5" /><path d="M6 6.5h4M6 9.5h2.5" /></svg>
+                  </span>
+                  <h3 class="mod-title">Модель</h3>
+                  <p class="mod-desc">Языковая модель, которая отвечает в чате. API или локальная.</p>
+                  <span class="status is-live"><i></i><span id="ctl-provider">Заглушка</span></span>
+                </article>
+
+                <article class="mod">
+                  <span class="mod-ico" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.5v3M6 4.5v7M9 3v10M12 5.5v5" /></svg>
+                  </span>
+                  <h3 class="mod-title">Голос</h3>
+                  <p class="mod-desc">Озвучка ответов: ElevenLabs или локальная модель.</p>
+                  <span class="status">Скоро</span>
+                </article>
+
+                <article class="mod">
+                  <span class="mod-ico" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="4" height="7" rx="2" /><path d="M3.8 8a4.2 4.2 0 0 0 8.4 0M8 12.2V14" /></svg>
+                  </span>
+                  <h3 class="mod-title">Слух</h3>
+                  <p class="mod-desc">Распознавание речи, чтобы говорить с Orpheus голосом.</p>
+                  <span class="status">Скоро</span>
+                </article>
+
+                <article class="mod">
+                  <span class="mod-ico" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="5.5" r="2.5" /><path d="M3.2 13c.6-2.4 2.4-3.6 4.8-3.6s4.2 1.2 4.8 3.6" /></svg>
+                  </span>
+                  <h3 class="mod-title">Аватар</h3>
+                  <p class="mod-desc">Модель персонажа и анимации, липсинк с голосом.</p>
+                  <span class="status">Скоро</span>
+                </article>
+
+                <article class="mod">
+                  <span class="mod-ico" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3" width="11" height="8" rx="2" /><path d="M6 13.5h4" /></svg>
+                  </span>
+                  <h3 class="mod-title">Питомец</h3>
+                  <p class="mod-desc">Отдельное прозрачное окно с персонажем на рабочем столе.</p>
+                  <span class="status">Скоро</span>
+                </article>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Настройки -->
+        <section class="view" data-view="settings" inert aria-hidden="true">
+          <div class="page">
+            <div class="page-inner">
+              <header class="page-head">
+                <h2 class="title title-sm">Настройки</h2>
+                <p class="subtitle">Всё хранится только на этом компьютере.</p>
+              </header>
+
+              <section class="panel">
+                <h3 class="panel-title">Профиль</h3>
+                <div class="profile-row">
+                  <span class="set-ava" id="set-ava" aria-hidden="true">?</span>
+                  <div class="profile-info">
+                    <p class="set-name" id="set-name"></p>
+                    <p class="set-about" id="set-about"></p>
+                  </div>
+                  <button class="btn" id="edit-profile" type="button">Изменить</button>
+                </div>
+              </section>
+
+              <section class="panel">
+                <h3 class="panel-title">Интерфейс</h3>
+                <div class="row">
+                  <div class="row-text">
+                    <p class="row-title">Положение панели кнопок</p>
+                    <p class="row-desc">Слева вертикально или сверху горизонтально.</p>
+                  </div>
+                  <div class="seg" role="group" aria-label="Положение панели">
+                    <button type="button" data-nav-pos="left" aria-pressed="true">Слева</button>
+                    <button type="button" data-nav-pos="top" aria-pressed="false">Сверху</button>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="row-text">
+                    <p class="row-title">Подписи к кнопкам</p>
+                    <p class="row-desc">Если выключить, останутся только иконки.</p>
+                  </div>
+                  <button class="switch" id="opt-labels" type="button" role="switch" aria-checked="true" aria-label="Подписи к кнопкам"><i></i></button>
+                </div>
+              </section>
+
+              <section class="panel">
+                <h3 class="panel-title">Данные</h3>
+                <div class="row">
+                  <div class="row-text">
+                    <p class="row-title">История чатов</p>
+                    <p class="row-desc">Удалит все разговоры без возможности вернуть.</p>
+                  </div>
+                  <button class="btn danger" id="clear-chats" type="button">Очистить</button>
+                </div>
+              </section>
+
+              <section class="panel">
+                <h3 class="panel-title">О приложении</h3>
+                <p class="about-text">Project Orpheus: личный собеседник и помощник. Сейчас вместо настоящей модели работает заглушка, интерфейс уже готов к подключению LLM.</p>
+                <p class="about-text hotkeys">Ctrl + 1…5 переключают разделы.</p>
+              </section>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>

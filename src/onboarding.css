@@ -1,0 +1,228 @@
+/* ---------- Знакомство: шаги ---------- */
+
+/* Карточка одна и остаётся на месте. Меняется только содержимое шагов,
+   а высота карточки плавно подстраивается (её выставляет main.ts). */
+.steps {
+  position: relative;
+  /* clip вместо hidden: даёт запас под обводку и тень полей ввода */
+  overflow: clip;
+  overflow-clip-margin: 12px;
+}
+
+.steps.is-animated {
+  transition: height 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.step {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.28s ease,
+    transform 0.5s cubic-bezier(0.2, 0.7, 0.2, 1),
+    visibility 0s linear 0.5s;
+}
+
+.step.is-active {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition:
+    opacity 0.45s ease 0.18s,
+    transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 0.12s,
+    visibility 0s;
+}
+
+.title-sm {
+  font-size: clamp(1.7rem, 4.6vw, 2.3rem);
+}
+
+#done-nick {
+  overflow-wrap: anywhere;
+}
+
+/* Точки прогресса: две точки и одна «капля», которая перетекает между ними */
+.dots {
+  position: relative;
+  width: 36px;
+  height: 0;
+  margin: 0 auto;
+  opacity: 0;
+  transition:
+    height 0.6s cubic-bezier(0.2, 0.7, 0.2, 1),
+    margin 0.6s cubic-bezier(0.2, 0.7, 0.2, 1),
+    opacity 0.35s ease;
+}
+
+.dots.is-visible {
+  height: 6px;
+  margin-bottom: 26px;
+  opacity: 1;
+}
+
+.dot,
+.dot-thumb {
+  position: absolute;
+  top: 0;
+  height: 6px;
+  border-radius: 999px;
+}
+
+.dot {
+  width: 6px;
+  background: rgba(255, 255, 255, 0.18);
+  transition: opacity 0.25s ease 0.2s;
+}
+
+.dot-a {
+  left: 0;
+}
+
+.dot-b {
+  left: 30px;
+}
+
+/* Точка, на которой сейчас стоит капля, скрыта, чтобы цвета не накладывались */
+.dots[data-pos="0"] .dot-a,
+.dots[data-pos="1"] .dot-b {
+  opacity: 0;
+  transition-delay: 0s;
+}
+
+.dot-thumb {
+  left: 0;
+  width: 22px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.dots[data-pos="1"] .dot-thumb {
+  left: 14px;
+}
+
+/* Поля ввода */
+.field {
+  display: block;
+  text-align: left;
+}
+
+.field-label {
+  display: block;
+  margin: 0 0 10px 2px;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.input,
+.textarea {
+  display: block;
+  width: 100%;
+  font: inherit;
+  font-size: 1.05rem;
+  color: var(--text);
+  caret-color: #ffffff;
+  padding: 14px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.28);
+  outline: none;
+  transition:
+    border-color 0.25s,
+    background 0.25s,
+    box-shadow 0.25s;
+}
+
+.textarea {
+  min-height: 132px;
+  resize: none;
+  line-height: 1.5;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: rgba(141, 141, 150, 0.7);
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: rgba(255, 255, 255, 0.34);
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.06);
+}
+
+.hint {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 1.4em;
+  margin: 10px 2px 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  text-align: left;
+  color: var(--muted);
+  transition: color 0.2s;
+}
+
+.hint.is-error {
+  color: #ffb4b4;
+}
+
+/* Ряд кнопок */
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.ghost {
+  font: inherit;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  padding: 13px 20px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.ghost:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ghost:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.45);
+  outline-offset: 2px;
+}
+
+.enter:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .steps.is-animated,
+  .dots,
+  .dot {
+    transition-duration: 0.01s;
+    transition-delay: 0s;
+  }
+
+  .step,
+  .step.is-active {
+    transition: opacity 0.2s ease;
+    transform: none !important;
+  }
+}
