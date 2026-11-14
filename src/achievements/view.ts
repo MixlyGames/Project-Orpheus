@@ -3,9 +3,10 @@
 // а сверху «Сбросить все»: так удобно проверять плашку и вид списка.
 
 import "./achievements.css";
+import { describeError, log } from "../log";
 import { getSettings, onSettings } from "../settings";
 import { ACHIEVEMENTS, type Achievement } from "./data";
-import { iconSvg } from "./icons";
+import { hasIcon, iconSvg } from "./icons";
 import {
   isUnlocked,
   onAchievementsChange,
@@ -90,6 +91,43 @@ function buildCard(a: Achievement, dev: boolean): HTMLElement {
   return card;
 }
 
+/** Карточка, которая не может сломать весь список: при ошибке рисуется запасная, а причина идёт в «Дебаггер». */
+function safeCard(a: Achievement, dev: boolean): HTMLElement {
+  try {
+    return buildCard(a, dev);
+  } catch (err) {
+    log("system", "error", `Не удалось нарисовать достижение «${a.id}».`, describeError(err));
+    const fallback = el("div", "ach-card", `Достижение «${a.id}»: ошибка отображения (подробности в «Дебаггере»).`);
+    fallback.dataset.state = "locked";
+    return fallback;
+  }
+}
+
+/** Проверяет data.ts и пишет понятные предупреждения в «Дебаггер» вместо поломок. */
+function validateAchievements(): void {
+  const seen = new Set<string>();
+  for (const a of ACHIEVEMENTS) {
+    if (!a.id) {
+      log("system", "warn", "В списке достижений есть запись без id (src/achievements/data.ts).");
+    }
+    if (seen.has(a.id)) {
+      log(
+        "system",
+        "warn",
+        `Достижения: id «${a.id}» повторяется, такие достижения будут выдаваться вместе. Поменяй id у одного из них.`,
+      );
+    }
+    seen.add(a.id);
+    if (!hasIcon(a.icon)) {
+      log(
+        "system",
+        "warn",
+        `Достижение «${a.id}»: нет иконки «${a.icon}» в src/achievements/icons.ts, показана запасная.`,
+      );
+    }
+  }
+}
+
 function render(): void {
   if (!ready) return;
 
@@ -98,7 +136,7 @@ function render(): void {
   tools.hidden = !dev;
   subtitle.textContent = `Получено ${unlockedCount()} из ${ACHIEVEMENTS.length}.`;
 
-  list.replaceChildren(...ACHIEVEMENTS.map((a) => buildCard(a, dev)));
+  list.replaceChildren(...ACHIEVEMENTS.map((a) => safeCard(a, dev)));
 }
 
 function resetConfirm(): void {
@@ -112,6 +150,8 @@ export function initAchievementsView(): void {
   subtitle = byId("ach-subtitle");
   tools = byId("ach-tools");
   resetBtn = byId("ach-reset");
+
+  validateAchievements();
 
   // Сброс двухшаговый, чтобы не стереть прогресс случайно.
   resetBtn.addEventListener("click", () => {

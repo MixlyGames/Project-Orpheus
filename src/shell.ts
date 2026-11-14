@@ -15,7 +15,7 @@ import {
 import { clearBackgroundFile, setBackgroundFile } from "./background";
 import { MEDIA_LIMITS, type MediaKind } from "./media";
 import { initDebug, refreshDebug } from "./debug";
-import { log } from "./log";
+import { describeError, log } from "./log";
 import { hideAvatarView, initAvatarView, renderAvatarView, showAvatarView } from "./avatar/view";
 import { initAchievementsView, refreshAchievementsView } from "./achievements/view";
 
@@ -537,14 +537,23 @@ onSettings(applySettings);
 
 // ---------- Запуск ----------
 
+/** Запускает необязательный раздел так, чтобы его сбой не ронял остальной интерфейс. */
+function safeInit(name: string, init: () => void): void {
+  try {
+    init();
+  } catch (err) {
+    log("system", "error", `Раздел «${name}» не запустился.`, describeError(err));
+  }
+}
+
 export function initShell(h: ShellHooks): void {
   hooks = h;
   clearBtn.disabled = store.getChats().length === 0;
   applySettings();
   refreshProfile();
-  initDebug();
-  initAvatarView();
-  initAchievementsView();
+  safeInit("Дебаггер", initDebug);
+  safeInit("Аватар", initAvatarView);
+  safeInit("Достижения", initAchievementsView);
   showView("chat");
   window.addEventListener("resize", () => placeThumb(false));
   void document.fonts?.ready.then(() => placeThumb(false));

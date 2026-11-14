@@ -1,12 +1,16 @@
-
 // Иконки достижений: простые контурные рисунки 16×16 в том же стиле, что и остальной интерфейс.
-// Чтобы добавить иконку: допиши имя в IconName (data.ts) и контуры сюда.
-
-import type { IconName } from "./data";
+//
+// Чтобы добавить иконку, допиши её сюда: ключ это имя для data.ts, значение это список контуров
+// (атрибут d у <path>). Больше нигде ничего менять не нужно: имя появится в подсказках редактора
+// в data.ts само (тип IconName).
+//
+// Опечатка или неизвестное имя интерфейс не ломает: показывается запасная иконка,
+// а в «Дебаггере» появляется предупреждение.
 
 const NS = "http://www.w3.org/2000/svg";
+const FALLBACK = "trophy";
 
-const ICONS: Record<IconName | "lock", string[]> = {
+const ICONS = {
   star: [
     "M8 2l1.8 3.7 4 .6-2.9 2.8.7 4L8 11.2 4.4 13.1l.7-4L2.2 6.3l4-.6L8 2z",
   ],
@@ -66,13 +70,28 @@ const ICONS: Record<IconName | "lock", string[]> = {
     "M8 3.5V2M8 14v-1.5",
   ],
 
+  // Служебная: замок для секретных достижений (в data.ts её указывать не нужно).
   lock: [
     "M5 7V5.5a3 3 0 0 1 6 0V7",
     "M4 7h8v6H4z",
   ],
-};
+} satisfies Record<string, string[]>;
 
-export function iconSvg(name: IconName | "lock"): SVGSVGElement {
+/** Имена иконок, которые можно указывать в data.ts. */
+export type IconName = Exclude<keyof typeof ICONS, "lock">;
+
+function paths(name: string): string[] | undefined {
+  // hasOwnProperty, чтобы имена вроде "constructor" не принимались за иконки.
+  return Object.prototype.hasOwnProperty.call(ICONS, name)
+    ? (ICONS as Record<string, string[]>)[name]
+    : undefined;
+}
+
+export function hasIcon(name: string): boolean {
+  return paths(name) !== undefined;
+}
+
+export function iconSvg(name: string): SVGSVGElement {
   const svg = document.createElementNS(NS, "svg");
 
   svg.setAttribute("viewBox", "0 0 16 16");
@@ -83,7 +102,7 @@ export function iconSvg(name: IconName | "lock"): SVGSVGElement {
   svg.setAttribute("stroke-linejoin", "round");
   svg.setAttribute("aria-hidden", "true");
 
-  for (const d of ICONS[name]) {
+  for (const d of paths(name) ?? paths(FALLBACK) ?? []) {
     const path = document.createElementNS(NS, "path");
     path.setAttribute("d", d);
     svg.append(path);
