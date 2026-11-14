@@ -1,5 +1,14 @@
 import "./chat.css";
-import { fakeProvider, type ChatMessage, type LLMProvider } from "./llm";
+import {
+  normalizeTrace,
+  providerFor,
+  ProviderError,
+  type ChatMessage,
+  type SearchStep,
+} from "./llm";
+import { getSettings } from "./settings";
+import { describeError, log } from "./log";
+import { createTraceBlock, type TraceBlock } from "./trace";
 import * as store from "./store";
 import { enableShell, initShell, onView, refreshProfile, showView, type ShellHooks } from "./shell";
 
@@ -27,7 +36,6 @@ const sendBtn = byId<HTMLButtonElement>("send");
 
 export type ChatHooks = ShellHooks;
 
-const provider: LLMProvider = fakeProvider;
 
 let hooks: ChatHooks = { getNickname: () => "", getAbout: () => "", onEditProfile: () => {} };
 let controller: AbortController | null = null;
@@ -49,7 +57,7 @@ const SUBTITLES = [
 function dayPart(): string {
   const h = new Date().getHours();
   if (h < 5) return "Доброй ночи";
-  if (h < 12) return "Доброе утро";
+  if (h < 12) return "Утро доброе)";
   if (h < 18) return "Добрый день";
   return "Добрый вечер";
 }
@@ -66,6 +74,8 @@ type MessageView = {
   root: HTMLElement;
   setText: (text: string) => void;
   setStreaming: (on: boolean) => void;
+  setTrace: (steps: readonly SearchStep[], ms?: number) => void;
+  collapseTrace: () => void;
 };
 
 function typingDots(): HTMLElement {
@@ -80,6 +90,8 @@ function appendMessage(m: ChatMessage, animate: boolean): MessageView {
   const root = document.createElement("div");
   root.className = `msg ${m.role === "user" ? "msg-user" : "msg-bot"}`;
   if (!animate) root.classList.add("no-anim");
+
+  let trace: TraceBlock | null = null; // лента шагов поиска есть только у ответов Орфеи
 
   const bubble = document.createElement("div");
   bubble.className = "bubble";
@@ -115,16 +127,32 @@ function appendMessage(m: ChatMessage, animate: boolean): MessageView {
     });
     actions.append(copy);
 
-    body.append(bubble, actions);
+    trace = createTraceBlock();
+    body.append(trace.el, bubble, actions);
     root.append(ava, body);
   }
 
   thread.append(root);
 
+  // Сохранённое сообщение: показываем ленту шагов уже свёрнутой.
+  if (trace && m.role === "assistant") {
+    const saved = normalizeTrace(m.trace);
+    if (saved.length > 0) {
+      trace.update(saved, m.traceMs);
+      trace.collapse();
+    }
+  }
+
   return {
     root,
     setText(text) {
       bubble.textContent = text;
+    },
+    setTrace(steps, ms) {
+      trace?.update(steps, ms);
+    },
+    collapseTrace() {
+      trace?.collapse();
     },
     setStreaming(on) {
       root.classList.toggle("is-streaming", on);
@@ -212,19 +240,51 @@ async function send(raw: string): Promise<void> {
   updateUi();
 
   const history = chat.messages.slice(0, -1);
+  const provider = providerFor(getSettings().provider);
+  const startedAt = performance.now();
+  log(
+    "chat",
+    "info",
+    `Отправлено сообщение (${text.length} симв.), отвечает: ${provider.name}.`,
+    `Реплик в истории, включая новую: ${history.length}`,
+  );
+
+  // Шаги поиска: добавляем или обновляем по id, считаем время работы инструментов.
+  const stepStarted = new Map<string, number>();
+  const onStep = (step: SearchStep): void => {
+    const stick = isNearBottom();
+    const trace = (reply.trace ??= []);
+    const i = trace.findIndex((s) => s.id === step.id);
+    if (i >= 0) trace[i] = step;
+    else trace.push(step);
+
+    const now = performance.now();
+    if (step.status === "running") stepStarted.set(step.id, now);
+    else reply.traceMs = (reply.traceMs ?? 0) + (now - (stepStarted.get(step.id) ?? now));
+
+    bot.setTrace(trace, reply.traceMs);
+    if (stick) scrollToBottom();
+  };
 
   try {
-    for await (const chunk of provider.stream(history, ctrl.signal)) {
+    for await (const chunk of provider.stream(history, ctrl.signal, onStep)) {
       const stick = isNearBottom();
+      if (!reply.content) bot.collapseTrace(); // ответ пошёл: ленту сворачиваем
       reply.content += chunk;
       bot.setText(reply.content);
       if (stick) scrollToBottom();
     }
+    const seconds = ((performance.now() - startedAt) / 1000).toFixed(1);
+    log("chat", "info", `Ответ получен: ${reply.content.length} симв. за ${seconds} с.`);
   } catch (err) {
     const aborted = err instanceof DOMException && err.name === "AbortError";
-    if (!aborted) {
+    if (aborted) {
+      log("chat", "info", "Ответ остановлен пользователем.");
+    } else {
       console.warn("Orpheus: ошибка провайдера", err);
-      reply.content = reply.content || "Не удалось получить ответ.";
+      const reason = err instanceof ProviderError ? err.message : "Не удалось получить ответ.";
+      log("chat", "error", reason, describeError(err));
+      reply.content = reply.content || reason;
       bot.setText(reply.content);
     }
   } finally {

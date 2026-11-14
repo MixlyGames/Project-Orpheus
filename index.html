@@ -3,6 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Тема ставится до отрисовки, чтобы светлая не мигала тёмным при запуске. -->
+    <script>
+      try {
+        var s = JSON.parse(localStorage.getItem("orpheus.settings") || "{}");
+        if (s.theme === "light") document.documentElement.dataset.theme = "light";
+      } catch (e) {}
+    </script>
     <link rel="stylesheet" href="/src/styles.css" />
     <title>Orpheus</title>
     <script type="module" src="/src/main.ts" defer></script>
@@ -11,12 +18,15 @@
   <body data-nav="left">
     <div class="bg" aria-hidden="true">
       <canvas id="bg-canvas"></canvas>
+      <img class="bg-media" id="bg-image" alt="" />
+      <video class="bg-media" id="bg-video" muted loop playsinline></video>
+      <span class="bg-dim"></span>
       <span class="grain"></span>
       <span class="vignette"></span>
     </div>
 
     <header class="titlebar" data-tauri-drag-region>
-      <span class="titlebar-name" data-tauri-drag-region>Orpheus</span>
+      <span class="titlebar-name" data-tauri-drag-region>Орфея</span>
       <div class="win-controls">
         <button class="win-btn" id="win-min" type="button" aria-label="Свернуть">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -130,14 +140,8 @@
         </svg>
         <span class="dock-label">История</span>
       </button>
-      <button class="dock-btn" type="button" data-view="avatar" title="Аватар (Ctrl+3)">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="8" cy="5.5" r="2.5" />
-          <path d="M3.2 13c.6-2.4 2.4-3.6 4.8-3.6s4.2 1.2 4.8 3.6" />
-        </svg>
-        <span class="dock-label">Аватар</span>
-      </button>
-      <button class="dock-btn" type="button" data-view="control" title="Управление (Ctrl+4)">
+
+      <button class="dock-btn" type="button" data-view="control" title="Управление (Ctrl+3)">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 5h4M12 5h1M3 11h1M8 11h5" />
           <circle cx="9.5" cy="5" r="1.7" />
@@ -145,12 +149,19 @@
         </svg>
         <span class="dock-label">Управление</span>
       </button>
-      <button class="dock-btn" type="button" data-view="settings" title="Настройки (Ctrl+5)">
+      <button class="dock-btn" type="button" data-view="settings" title="Настройки (Ctrl+4)">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="8" cy="8" r="2.1" />
           <path d="M8 2v1.6M8 12.4V14M2 8h1.6M12.4 8H14M3.8 3.8l1.1 1.1M11.1 11.1l1.1 1.1M12.2 3.8l-1.1 1.1M4.9 11.1l-1.1 1.1" />
         </svg>
         <span class="dock-label">Настройки</span>
+      </button>
+      <button class="dock-btn" type="button" data-view="debug" title="Дебаггер (Ctrl+5)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="12" height="10" rx="2" />
+          <path d="M5 6.6l2 1.4-2 1.4M8.6 10h2.4" />
+        </svg>
+        <span class="dock-label">Дебаггер</span>
       </button>
     </nav>
 
@@ -169,7 +180,6 @@
                 </svg>
                 Новый чат
               </button>
-              <span class="badge" title="Модель пока не подключена">Заглушка</span>
             </div>
 
             <div class="chat-body">
@@ -194,7 +204,7 @@
 
               <div class="composer-wrap" id="composer-wrap">
                 <div class="composer">
-                  <textarea id="composer-input" rows="1" maxlength="8000" spellcheck="false" placeholder="Напиши Orpheus…"></textarea>
+                  <textarea id="composer-input" rows="1" maxlength="8000" spellcheck="false" placeholder="Напиши Орфее…"></textarea>
                   <button class="send" id="send" type="button" aria-label="Отправить" disabled>
                     <svg class="ico-send" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M8 13V3M3.5 7.5L8 3l4.5 4.5" />
@@ -215,7 +225,7 @@
               <svg class="agent-star" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 2C12.8 8.2 15.8 11.2 22 12C15.8 12.8 12.8 15.8 12 22C11.2 15.8 8.2 12.8 2 12C8.2 11.2 11.2 8.2 12 2Z" />
               </svg>
-              <span class="agent-tag"><i></i>Orpheus</span>
+              <span class="agent-tag"><i></i>Орфея</span>
             </div>
           </aside>
           </div>
@@ -247,24 +257,70 @@
           <div class="page">
             <div class="page-inner">
               <header class="page-head">
+                <button class="back-btn" type="button" data-back="control">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5" /></svg>
+                  Управление
+                </button>
                 <h2 class="title title-sm">Аватар</h2>
                 <p class="subtitle">Лицо и голос Orpheus.</p>
               </header>
 
-              <div class="panel avatar-stage">
-                <div class="orb-wrap orb-big" aria-hidden="true">
-                  <span class="ring"></span>
-                  <span class="ring ring-2"></span>
-                  <span class="orb"></span>
+              <section class="panel">
+                <h3 class="panel-title">Режим</h3>
+                <div class="row">
+                  <div class="row-text">
+                    <p class="row-title">Тип аватара</p>
+                    <p class="row-desc">3D-модель или 2D-спрайты (пиксельная или рисованная анимация).</p>
+                  </div>
+                  <div class="seg" role="group" aria-label="Тип аватара">
+                    <button type="button" data-avatar-opt="3d" aria-pressed="true">3D · VRM</button>
+                    <button type="button" data-avatar-opt="2d" aria-pressed="false">2D · Спрайты</button>
+                  </div>
                 </div>
-                <p class="avatar-title">Аватар пока не подключён</p>
-                <p class="avatar-desc">Здесь появится 3D-модель (VRM) или 2D-персонаж, который будет двигаться и говорить вместе с чатом.</p>
-                <div class="chips-static">
-                  <span class="status">3D · VRM</span>
-                  <span class="status">2D · Live2D</span>
-                  <span class="status">Питомец на рабочем столе</span>
+              </section>
+
+              <div class="panel avatar-stage" id="avatar-stage">
+                <div class="avatar-canvas" id="avatar-canvas">
+                  <p class="avatar-hint">Перетаскивай, чтобы повернуть. Ctrl + колесо: масштаб. Двойной клик: сброс.</p>
+                </div>
+                <div class="avatar-empty">
+                  <div class="orb-wrap orb-big" aria-hidden="true">
+                    <span class="ring"></span>
+                    <span class="ring ring-2"></span>
+                    <span class="orb"></span>
+                  </div>
+                  <p class="avatar-title" id="avatar-title">3D-модель не выбрана</p>
+                  <p class="avatar-desc" id="avatar-desc"></p>
                 </div>
               </div>
+
+              <section class="panel">
+                <h3 class="panel-title">Модель</h3>
+                <div class="row">
+                  <div class="row-text">
+                    <p class="row-title" id="avatar-src-title">Файл модели</p>
+                    <p class="row-desc" id="avatar-src-desc"></p>
+                  </div>
+                  <div class="btn-group">
+                    <button class="btn" id="avatar-pick" type="button"></button>
+                    <button class="btn danger" id="avatar-clear" type="button" hidden>Убрать</button>
+                  </div>
+                </div>
+                <div class="row" data-avatar-only="2d" hidden>
+                  <div class="row-text">
+                    <p class="row-title">Параметры спрайтшита</p>
+                    <p class="row-desc">Размер кадра, число кадров и FPS для каждой анимации.</p>
+                  </div>
+                  <span class="status">Скоро</span>
+                </div>
+                <div class="row">
+                  <div class="row-text">
+                    <p class="row-title">Анимации</p>
+                    <p class="row-desc" id="avatar-states-desc"></p>
+                  </div>
+                  <span class="status">Скоро</span>
+                </div>
+              </section>
             </div>
           </div>
         </section>
@@ -275,7 +331,7 @@
             <div class="page-inner">
               <header class="page-head">
                 <h2 class="title title-sm">Управление</h2>
-                <p class="subtitle">Модули Orpheus и их состояние.</p>
+                <p class="subtitle">Модули Орфеи и их состояние.</p>
               </header>
 
               <div class="cards">
@@ -302,25 +358,43 @@
                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="4" height="7" rx="2" /><path d="M3.8 8a4.2 4.2 0 0 0 8.4 0M8 12.2V14" /></svg>
                   </span>
                   <h3 class="mod-title">Слух</h3>
-                  <p class="mod-desc">Распознавание речи, чтобы говорить с Orpheus голосом.</p>
+                  <p class="mod-desc">Распознавание речи, чтобы говорить с Орфеей голосом.</p>
                   <span class="status">Скоро</span>
                 </article>
 
-                <article class="mod">
+                <article class="mod mod-link" data-open-view="avatar" role="button" tabindex="0" aria-label="Открыть настройки аватара">
                   <span class="mod-ico" aria-hidden="true">
                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="5.5" r="2.5" /><path d="M3.2 13c.6-2.4 2.4-3.6 4.8-3.6s4.2 1.2 4.8 3.6" /></svg>
                   </span>
                   <h3 class="mod-title">Аватар</h3>
                   <p class="mod-desc">Модель персонажа и анимации, липсинк с голосом.</p>
+                  <span class="status mod-open">Открыть →</span>
+                </article>
+
+                <article class="mod mod-link" data-open-view="achievements" role="button" tabindex="0" aria-label="Открыть достижения">
+                  <span class="mod-ico" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2.5h6v3.2a3 3 0 0 1-6 0V2.5z" /><path d="M5 4H3a2 2 0 0 0 2 3M11 4h2a2 2 0 0 1-2 3M8 8.7V11M5.5 13.5h5M6.5 11h3" /></svg>
+                  </span>
+                  <h3 class="mod-title">Достижения</h3>
+                  <p class="mod-desc">События в приложении, которые открываются по ходу общения с Орфеей.</p>
+                  <span class="status mod-open">Открыть →</span>
+                </article>
+
+                <article class="mod">
+                  <span class="mod-ico" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1.2" /><rect x="9" y="2.5" width="4.5" height="4.5" rx="1.2" /><rect x="2.5" y="9" width="4.5" height="4.5" rx="1.2" /><path d="M11.25 9.2v4.1M9.2 11.25h4.1" /></svg>
+                  </span>
+                  <h3 class="mod-title">Приложения</h3>
+                  <p class="mod-desc">Работа с программами на компьютере: через MCP-серверы или напрямую, без MCP.</p>
                   <span class="status">Скоро</span>
                 </article>
 
                 <article class="mod">
                   <span class="mod-ico" aria-hidden="true">
-                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3" width="11" height="8" rx="2" /><path d="M6 13.5h4" /></svg>
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5.5h6a3 3 0 0 1 2.9 2.3l.6 2.7a1.6 1.6 0 0 1-2.7 1.4L10.5 10.5h-5l-1.3 1.4a1.6 1.6 0 0 1-2.7-1.4l.6-2.7A3 3 0 0 1 5 5.5z" /><path d="M5.2 7.3v2.4M4 8.5h2.4M10.6 7.8h.01M12 9.2h.01" /></svg>
                   </span>
-                  <h3 class="mod-title">Питомец</h3>
-                  <p class="mod-desc">Отдельное прозрачное окно с персонажем на рабочем столе.</p>
+                  <h3 class="mod-title">Игры</h3>
+                  <p class="mod-desc">Орфея появляется внутри кооп-игры как второй игрок и играет вместе с тобой.</p>
                   <span class="status">Скоро</span>
                 </article>
               </div>
@@ -350,6 +424,20 @@
               </section>
 
               <section class="panel">
+                <h3 class="panel-title">Чат</h3>
+                <div class="row">
+                  <div class="row-text">
+                    <p class="row-title">Кто отвечает</p>
+                    <p class="row-desc">Заглушка работает без сервера. Для Орфеи сначала запусти orphea_server.py в PyCharm.</p>
+                  </div>
+                  <div class="seg" role="group" aria-label="Кто отвечает">
+                    <button type="button" data-provider-opt="fake" aria-pressed="true">Заглушка</button>
+                    <button type="button" data-provider-opt="orphea" aria-pressed="false">Орфея</button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="panel">
                 <h3 class="panel-title">Интерфейс</h3>
                 <div class="row">
                   <div class="row-text">
@@ -371,6 +459,67 @@
               </section>
 
               <section class="panel">
+                <h3 class="panel-title">Оформление</h3>
+                <div class="row">
+                  <div class="row-text">
+                    <p class="row-title">Тема</p>
+                    <p class="row-desc">Тёмная или светлая.</p>
+                  </div>
+                  <div class="seg" role="group" aria-label="Тема">
+                    <button type="button" data-theme-opt="dark" aria-pressed="true">Тёмная</button>
+                    <button type="button" data-theme-opt="light" aria-pressed="false">Светлая</button>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="row-text">
+                    <p class="row-title">Анимации интерфейса</p>
+                    <p class="row-desc">Переходы между разделами, «капля» на панели, появление карточек.</p>
+                  </div>
+                  <button class="switch" id="opt-anim" type="button" role="switch" aria-checked="true" aria-label="Анимации интерфейса"><i></i></button>
+                </div>
+                <div class="row">
+                  <div class="row-text">
+                    <p class="row-title">Движение фона</p>
+                    <p class="row-desc">Шёлк и видео. Если выключить, фон замирает.</p>
+                  </div>
+                  <button class="switch" id="opt-bg-anim" type="button" role="switch" aria-checked="true" aria-label="Движение фона"><i></i></button>
+                </div>
+                <div class="row">
+                  <div class="row-text">
+                    <p class="row-title">Фон</p>
+                    <p class="row-desc">Шёлк, своя картинка или своё видео.</p>
+                  </div>
+                  <div class="seg" role="group" aria-label="Фон">
+                    <button type="button" data-bg-opt="silk" aria-pressed="true">Шёлк</button>
+                    <button type="button" data-bg-opt="image" aria-pressed="false">Картинка</button>
+                    <button type="button" data-bg-opt="video" aria-pressed="false">Видео</button>
+                  </div>
+                </div>
+                <div class="row" id="bg-file-row" hidden>
+                  <div class="row-text">
+                    <p class="row-title" id="bg-file-title">Файл</p>
+                    <p class="row-desc" id="bg-file-name">Не выбран.</p>
+                    <p class="row-desc row-error" id="bg-file-error" role="alert" hidden></p>
+                  </div>
+                  <div class="btn-group">
+                    <button class="btn" id="bg-pick" type="button">Выбрать…</button>
+                    <button class="btn" id="bg-clear" type="button">Убрать</button>
+                  </div>
+                  <input id="bg-file" type="file" hidden />
+                </div>
+                <div class="row" id="bg-dim-row" hidden>
+                  <div class="row-text">
+                    <p class="row-title">Затемнение фона</p>
+                    <p class="row-desc">Помогает читать текст поверх картинки. В светлой теме фон осветляется.</p>
+                  </div>
+                  <label class="range">
+                    <input id="bg-dim" type="range" min="0" max="80" step="5" value="30" aria-label="Затемнение фона" />
+                    <output id="bg-dim-val">30%</output>
+                  </label>
+                </div>
+              </section>
+
+              <section class="panel">
                 <h3 class="panel-title">Данные</h3>
                 <div class="row">
                   <div class="row-text">
@@ -386,6 +535,72 @@
                 <p class="about-text">Project Orpheus: личный собеседник и помощник. Сейчас вместо настоящей модели работает заглушка, интерфейс уже готов к подключению LLM.</p>
                 <p class="about-text hotkeys">Ctrl + 1…5 переключают разделы.</p>
               </section>
+            </div>
+          </div>
+        </section>
+
+        <!-- Дебаггер -->
+        <section class="view" data-view="debug" inert aria-hidden="true">
+          <div class="page">
+            <div class="page-inner">
+              <header class="page-head">
+                <h2 class="title title-sm">Дебаггер</h2>
+                <p class="subtitle">Что происходит внутри: события Орфеи, чата и приложения простым языком.</p>
+              </header>
+
+              <section class="panel">
+                <div class="row">
+                  <div class="row-text">
+                    <p class="row-title">Режим разработчика</p>
+                    <p class="row-desc">Добавляет технические детали, точное время и отладочные записи.</p>
+                  </div>
+                  <button class="switch" id="opt-dev" type="button" role="switch" aria-checked="false" aria-label="Режим разработчика"><i></i></button>
+                </div>
+              </section>
+
+              <div class="dbg-bar">
+                <div class="seg" role="group" aria-label="Источник">
+                  <button type="button" data-dbg-source="all" aria-pressed="true">Все</button>
+                  <button type="button" data-dbg-source="system" aria-pressed="false">Система</button>
+                  <button type="button" data-dbg-source="chat" aria-pressed="false">Чат</button>
+                  <button type="button" data-dbg-source="orphea" aria-pressed="false">Орфея</button>
+                </div>
+                <div class="seg" role="group" aria-label="Важность">
+                  <button type="button" data-dbg-level="all" aria-pressed="true">Все записи</button>
+                  <button type="button" data-dbg-level="problems" aria-pressed="false">Проблемы</button>
+                </div>
+                <span class="dbg-spacer"></span>
+                <button class="btn" id="dbg-copy" type="button">Копировать</button>
+                <button class="btn danger" id="dbg-clear" type="button">Очистить</button>
+              </div>
+
+              <div class="dbg-box">
+                <div class="dbg-list" id="dbg-list" role="log" aria-live="polite"></div>
+                <p class="dbg-empty" id="dbg-empty" hidden></p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Достижения -->
+        <section class="view" data-view="achievements" inert aria-hidden="true">
+          <div class="page">
+            <div class="page-inner">
+              <header class="page-head">
+                <button class="back-btn" type="button" data-back="control">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5" /></svg>
+                  Управление
+                </button>
+                <h2 class="title title-sm">Достижения</h2>
+                <p class="subtitle" id="ach-subtitle"></p>
+              </header>
+
+              <div class="ach-tools" id="ach-tools" hidden>
+                <button class="btn danger" id="ach-reset" type="button">Сбросить все</button>
+                <span class="ach-note">Режим разработчика: у каждого достижения есть кнопка «Выдать».</span>
+              </div>
+
+              <div class="ach-list" id="ach-list"></div>
             </div>
           </div>
         </section>

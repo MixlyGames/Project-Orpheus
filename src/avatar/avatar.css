@@ -1,0 +1,59 @@
+/* Раздел «Аватар»: предпросмотр 3D-модели. */
+
+.avatar-stage {
+  position: relative;
+  justify-content: center;
+  min-height: 380px;
+  overflow: hidden;
+}
+
+.avatar-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.avatar-canvas {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+}
+
+.avatar-canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.avatar-canvas canvas:active {
+  cursor: grabbing;
+}
+
+.avatar-hint {
+  position: absolute;
+  right: 0;
+  bottom: 12px;
+  left: 0;
+  margin: 0;
+  font-size: 0.76rem;
+  text-align: center;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.avatar-stage.has-model .avatar-canvas {
+  visibility: visible;
+}
+
+.avatar-stage.has-model .avatar-empty {
+  visibility: hidden;
+}
+
+.row-desc.is-error {
+  color: var(--danger-text);
+}
+
+.btn[hidden] {
+  display: none;
+}

@@ -1,11 +1,44 @@
+/* Тема: тёмная по умолчанию, светлая включается через data-theme="light" на <html>.
+   Все «белые» полупрозрачные слои завязаны на --fg-rgb: в тёмной теме это белый,
+   в светлой тёмный. Так один набор правил работает в обеих темах. */
 :root {
+  color-scheme: dark;
   --bg: #08080a;
   --text: #ececf0;
   --muted: #8d8d96;
-  --line: rgba(255, 255, 255, 0.09);
+  --fg-rgb: 255, 255, 255;
+  --shadow-rgb: 0, 0, 0;
+  --line: rgba(var(--fg-rgb), 0.09);
+  --inset: rgba(0, 0, 0, 0.28);
+  --inset-strong: rgba(0, 0, 0, 0.4);
+  --glass: rgba(10, 10, 13, 0.55);
+  --danger-text: #ffc2c2;
+  --title-a: #8a8a94;
+  --title-b: #ffffff;
+  --title-c: #9d9da7;
+  --selection: rgba(200, 200, 210, 0.26);
+  --selection-title: rgba(200, 200, 210, 0.2);
   --font: "Golos Text Variable", "Segoe UI Variable Text", "Segoe UI",
     system-ui, sans-serif;
   --mono: "JetBrains Mono Variable", "Cascadia Mono", Consolas, monospace;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #eeeef2;
+  --text: #17171c;
+  --muted: #5f5f6a;
+  --fg-rgb: 20, 20, 30;
+  --shadow-rgb: 40, 40, 70;
+  --inset: rgba(255, 255, 255, 0.55);
+  --inset-strong: rgba(255, 255, 255, 0.75);
+  --glass: rgba(255, 255, 255, 0.62);
+  --danger-text: #b3261e;
+  --title-a: #5b5b66;
+  --title-b: #101015;
+  --title-c: #6c6c78;
+  --selection: rgba(60, 60, 90, 0.2);
+  --selection-title: rgba(60, 60, 90, 0.16);
 }
 
 * {
@@ -54,7 +87,7 @@ body {
 .vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.3) 100%);
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(var(--shadow-rgb), 0.3) 100%);
 }
 
 /* ---------- Приветственное окно ---------- */
@@ -77,12 +110,12 @@ body {
   border-radius: 28px;
   border: 1px solid var(--line);
   background:
-    radial-gradient(420px circle at var(--mx) var(--my), rgba(255, 255, 255, 0.07), transparent 60%),
-    rgba(255, 255, 255, 0.035);
+    radial-gradient(420px circle at var(--mx) var(--my), rgba(var(--fg-rgb), 0.07), transparent 60%),
+    rgba(var(--fg-rgb), 0.035);
   backdrop-filter: blur(28px) saturate(120%);
   box-shadow:
-    0 30px 80px rgba(0, 0, 0, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 30px 80px rgba(var(--shadow-rgb), 0.55),
+    inset 0 1px 0 rgba(var(--fg-rgb), 0.06);
   animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
@@ -108,7 +141,7 @@ body {
   font-weight: 500;
   letter-spacing: 0.02em;
   line-height: 1.2;
-  background: linear-gradient(100deg, #8a8a94 0%, #ffffff 35%, #9d9da7 55%, #ffffff 80%, #8a8a94 100%);
+  background: linear-gradient(100deg, var(--title-a) 0%, var(--title-b) 35%, var(--title-c) 55%, var(--title-b) 80%, var(--title-a) 100%);
   background-size: 250% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -136,15 +169,15 @@ body {
   color: var(--text);
   padding: 13px 38px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(var(--fg-rgb), 0.16);
+  background: rgba(var(--fg-rgb), 0.06);
   cursor: pointer;
   transition: background 0.25s, border-color 0.25s, transform 0.25s;
 }
 
 .enter:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(var(--fg-rgb), 0.12);
+  border-color: rgba(var(--fg-rgb), 0.28);
   transform: translateY(-1px);
 }
 
@@ -153,7 +186,7 @@ body {
 }
 
 .enter:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline: 2px solid rgba(var(--fg-rgb), 0.5);
   outline-offset: 3px;
 }
 
@@ -190,7 +223,7 @@ body {
   padding: 3px;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.045);
+  background: rgba(var(--fg-rgb), 0.045);
   backdrop-filter: blur(14px);
 }
 
@@ -214,34 +247,34 @@ body {
 }
 
 .win-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--fg-rgb), 0.1);
   color: var(--text);
 }
 
 .win-btn:active {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(var(--fg-rgb), 0.16);
   transform: scale(0.94);
 }
 
 .win-btn:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.45);
+  outline: 2px solid rgba(var(--fg-rgb), 0.45);
   outline-offset: 1px;
 }
 
 .win-close:hover {
   background: rgba(255, 92, 92, 0.26);
-  color: #ffc2c2;
+  color: var(--danger-text);
 }
 
 /* ---------- Выделение текста ---------- */
 /* Лёгкий серый и полупрозрачный: градиент заголовка остаётся видимым. */
 ::selection {
-  background: rgba(200, 200, 210, 0.26);
+  background: var(--selection);
   color: inherit;
 }
 
 .title::selection {
-  background: rgba(200, 200, 210, 0.2);
+  background: var(--selection-title);
   -webkit-text-fill-color: transparent;
   color: transparent;
 }
@@ -263,4 +296,51 @@ body {
   .card {
     animation: none;
   }
+}
+
+/* ---------- Пользовательский фон: картинка или видео ---------- */
+
+.bg-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+body[data-bg="image"] #bg-image,
+body[data-bg="video"] #bg-video {
+  display: block;
+}
+
+body[data-bg="image"] #bg-canvas,
+body[data-bg="video"] #bg-canvas {
+  display: none;
+}
+
+/* Слой цвета темы поверх картинки или видео: затемняет фон в тёмной теме и осветляет в светлой. */
+.bg-dim {
+  position: absolute;
+  inset: 0;
+  display: none;
+  background: var(--bg);
+  opacity: var(--bg-dim, 0.3);
+  pointer-events: none;
+}
+
+body[data-bg="image"] .bg-dim,
+body[data-bg="video"] .bg-dim {
+  display: block;
+}
+
+/* ---------- Анимации выключены в настройках ---------- */
+
+body.no-motion *,
+body.no-motion *::before,
+body.no-motion *::after {
+  animation: none !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
 }

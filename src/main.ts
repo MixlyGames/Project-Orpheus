@@ -3,8 +3,12 @@ import "@fontsource-variable/jetbrains-mono/wght.css";
 import "./onboarding.css";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { startBackground } from "./background";
+import { motionReduced } from "./settings";
 import { closeChat, initChat, openChat } from "./chat";
+import { installGlobalErrorLogging, log } from "./log";
 
+installGlobalErrorLogging();
+log("system", "info", "Приложение запущено.");
 startBackground();
 
 // ---------- Профиль (хранится локально, только на этом компьютере) ----------
@@ -88,8 +92,6 @@ const focusTarget: Record<StepId, HTMLElement> = {
   done: doneContinue,
 };
 
-const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-
 // На сколько пикселей уезжает содержимое при смене шага.
 const SHIFT = 22;
 
@@ -118,7 +120,7 @@ function moveThumb(to: 0 | 1): void {
   const from = thumbPos;
   thumbPos = to;
   dotsBox.dataset.pos = String(to);
-  if (reduceMotion.matches) return;
+  if (motionReduced()) return;
   const a = from * DOT_STEP;
   const b = to * DOT_STEP;
   dotThumb.animate(

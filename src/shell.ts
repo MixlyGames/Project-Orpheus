@@ -1,13 +1,40 @@
 import "./shell.css";
-import { fakeProvider } from "./llm";
+import { providerFor } from "./llm";
 import * as store from "./store";
-import { getSettings, onSettings, updateSettings, type NavPosition } from "./settings";
+import {
+  getSettings,
+  motionReduced,
+  onSettings,
+  updateSettings,
+  type AvatarMode,
+  type BgMode,
+  type NavPosition,
+  type ProviderKind,
+  type Theme,
+} from "./settings";
+import { clearBackgroundFile, setBackgroundFile } from "./background";
+import { MEDIA_LIMITS, type MediaKind } from "./media";
+import { initDebug, refreshDebug } from "./debug";
+import { log } from "./log";
+import { hideAvatarView, initAvatarView, renderAvatarView, showAvatarView } from "./avatar/view";
+import { initAchievementsView, refreshAchievementsView } from "./achievements/view";
 
 // ---------- Разделы ----------
 
-export type ViewId = "chat" | "history" | "avatar" | "control" | "settings";
+export type ViewId = "chat" | "history" | "avatar" | "achievements" | "control" | "settings" | "debug";
 
-const VIEW_ORDER: ViewId[] = ["chat", "history", "avatar", "control", "settings"];
+// Порядок для направления сдвига при смене раздела. «Аватар» открывается из «Управления».
+const VIEW_ORDER: ViewId[] = ["chat", "history", "control", "avatar", "achievements", "settings", "debug"];
+
+// Разделы, которые открываются по Ctrl + 1…5 (у «Аватара» своей кнопки на панели нет).
+const HOTKEY_VIEWS: ViewId[] = ["chat", "history", "control", "settings", "debug"];
+
+// Вложенные разделы подсвечивают на панели кнопку своего родителя.
+const DOCK_PARENT: Partial<Record<ViewId, ViewId>> = { avatar: "control", achievements: "control" };
+
+function dockView(id: ViewId): ViewId {
+  return DOCK_PARENT[id] ?? id;
+}
 
 export type ShellHooks = {
   getNickname: () => string;
@@ -49,9 +76,24 @@ const setAbout = byId<HTMLElement>("set-about");
 const editProfileBtn = byId<HTMLButtonElement>("edit-profile");
 const segBtns = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-nav-pos]"));
 const optLabels = byId<HTMLButtonElement>("opt-labels");
-const clearBtn = byId<HTMLButtonElement>("clear-chats");
+const themeBtns = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-theme-opt]"));
+const bgBtns = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-bg-opt]"));
+const optAnim = byId<HTMLButtonElement>("opt-anim");
+const optBgAnim = byId<HTMLButtonElement>("opt-bg-anim");
+const bgFileRow = byId<HTMLElement>("bg-file-row");
+const bgFileTitle = byId<HTMLElement>("bg-file-title");
+const bgFileName = byId<HTMLElement>("bg-file-name");
+const bgFileError = byId<HTMLElement>("bg-file-error");
+const bgPick = byId<HTMLButtonElement>("bg-pick");
+const bgClear = byId<HTMLButtonElement>("bg-clear");
+const bgFile = byId<HTMLInputElement>("bg-file");
+const bgDimRow = byId<HTMLElement>("bg-dim-row");
+const bgDim = byId<HTMLInputElement>("bg-dim");
+const bgDimVal = byId<HTMLOutputElement>("bg-dim-val");
+const avatarBtns = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-avatar-opt]"));
 
-const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+const clearBtn = byId<HTMLButtonElement>("clear-chats");
+const providerBtns = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-provider-opt]"));
 
 let current: ViewId = "chat";
 let started = false;
@@ -71,7 +113,7 @@ type Rect = { left: number; top: number; width: number; height: number };
 let thumbRect: Rect | null = null;
 
 function measure(): Rect | null {
-  const btn = dockBtns.find((b) => b.dataset.view === current);
+  const btn = dockBtns.find((b) => b.dataset.view === dockView(current));
   if (!btn) return null;
   return {
     left: btn.offsetLeft,
@@ -103,7 +145,7 @@ function placeThumb(animate: boolean): void {
     height: `${next.height}px`,
   });
 
-  if (!animate || !prev || reduceMotion.matches) return;
+  if (!animate || !prev || motionReduced()) return;
 
   // На полпути капля растягивается на обе кнопки, а затем «перетекает» в новую.
   const left = Math.min(prev.left, next.left);
@@ -148,16 +190,20 @@ export function showView(id: ViewId): void {
   });
 
   dockBtns.forEach((b) => {
-    const active = b.dataset.view === id;
+    const active = b.dataset.view === dockView(id);
     b.classList.toggle("is-active", active);
     if (active) b.setAttribute("aria-current", "page");
     else b.removeAttribute("aria-current");
   });
 
-  placeThumb(started && prev !== id);
+  placeThumb(started && dockView(prev) !== dockView(id));
   started = true;
 
   if (id === "history") renderHistory();
+  if (id === "debug") refreshDebug();
+  if (id === "avatar") showAvatarView();
+  else hideAvatarView();
+  if (id === "achievements") refreshAchievementsView();
   viewListeners.forEach((l) => l(id));
 }
 
@@ -165,13 +211,35 @@ dockBtns.forEach((b) => {
   b.addEventListener("click", () => showView(b.dataset.view as ViewId));
 });
 
-// Ctrl + 1…5: быстрый переход между разделами.
+// Ctrl + 1…5: быстрый переход между разделами. Esc во вложенных разделах («Аватар», «Достижения»)
+// возвращает в «Управление».
 document.addEventListener("keydown", (e) => {
   if (!document.body.classList.contains("is-chat")) return;
+  const nested = current === "avatar" || current === "achievements";
+  if (e.key === "Escape" && nested && !e.ctrlKey && !e.altKey && !e.metaKey) {
+    showView("control");
+    return;
+  }
   if (!e.ctrlKey || e.shiftKey || e.altKey || e.metaKey) return;
   if (!/^[1-5]$/.test(e.key)) return;
   e.preventDefault();
-  showView(VIEW_ORDER[Number(e.key) - 1]);
+  showView(HOTKEY_VIEWS[Number(e.key) - 1]);
+});
+
+// Карточки, которые открывают раздел (например «Аватар» в «Управлении»), и кнопки «Назад».
+document.querySelectorAll<HTMLElement>("[data-open-view]").forEach((el) => {
+  const open = (): void => showView(el.dataset.openView as ViewId);
+  el.addEventListener("click", open);
+  el.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      open();
+    }
+  });
+});
+
+document.querySelectorAll<HTMLElement>("[data-back]").forEach((el) => {
+  el.addEventListener("click", () => showView(el.dataset.back as ViewId));
 });
 
 export function enableShell(on: boolean): void {
@@ -283,6 +351,24 @@ export function refreshProfile(): void {
   setAbout.textContent = about || "Описание не заполнено.";
 }
 
+function applyAvatar(mode: AvatarMode): void {
+  markSeg(avatarBtns, "avatarOpt", mode);
+  renderAvatarView(); // тексты и предпросмотр ведёт src/avatar/view.ts
+}
+
+/** Подсвечивает выбранную кнопку в сегментированном переключателе. */
+function markSeg(
+  btns: HTMLButtonElement[],
+  key: "themeOpt" | "bgOpt" | "avatarOpt" | "providerOpt",
+  value: string,
+): void {
+  btns.forEach((b) => {
+    const on = b.dataset[key] === value;
+    b.classList.toggle("is-on", on);
+    b.setAttribute("aria-pressed", String(on));
+  });
+}
+
 function applySettings(): void {
   const s = getSettings();
   document.body.dataset.nav = s.navPosition;
@@ -294,6 +380,34 @@ function applySettings(): void {
     b.setAttribute("aria-pressed", String(on));
   });
   optLabels.setAttribute("aria-checked", String(s.navLabels));
+
+  // Оформление.
+  markSeg(themeBtns, "themeOpt", s.theme);
+  markSeg(bgBtns, "bgOpt", s.bgMode);
+  optAnim.setAttribute("aria-checked", String(s.animations));
+  optBgAnim.setAttribute("aria-checked", String(s.bgAnimated));
+
+  // Блок с файлом и затемнением нужен только для картинки и видео.
+  const custom = s.bgMode !== "silk";
+  bgFileRow.hidden = !custom;
+  bgDimRow.hidden = !custom;
+  if (custom) {
+    const kind: MediaKind = s.bgMode === "video" ? "video" : "image";
+    const name = kind === "video" ? s.bgVideoName : s.bgImageName;
+    bgFileTitle.textContent = kind === "video" ? "Файл видео" : "Файл картинки";
+    bgFileName.textContent = name || `Не выбран. Максимум ${MEDIA_LIMITS[kind].label}.`;
+    bgFileName.title = name;
+    bgClear.disabled = !name;
+  } else {
+    showFileError(null);
+  }
+  bgDim.value = String(s.bgDim);
+  bgDimVal.textContent = `${s.bgDim}%`;
+
+  applyAvatar(s.avatarMode);
+
+  markSeg(providerBtns, "providerOpt", s.provider);
+  ctlProvider.textContent = providerFor(s.provider).name;
 
   // Размеры панели поменялись: ставим каплю на место без анимации.
   requestAnimationFrame(() => placeThumb(false));
@@ -308,7 +422,7 @@ function setNavPosition(pos: NavPosition): void {
       updateSettings({ navPosition: pos });
       requestAnimationFrame(() => dock.classList.remove("is-switching"));
     },
-    reduceMotion.matches ? 0 : 200,
+    motionReduced() ? 0 : 200,
   );
 }
 
@@ -318,6 +432,83 @@ segBtns.forEach((b) => {
 
 optLabels.addEventListener("click", () => {
   updateSettings({ navLabels: !getSettings().navLabels });
+});
+
+// ----- Оформление: тема, анимации, фон -----
+
+themeBtns.forEach((b) => {
+  b.addEventListener("click", () => updateSettings({ theme: b.dataset.themeOpt as Theme }));
+});
+
+optAnim.addEventListener("click", () => {
+  updateSettings({ animations: !getSettings().animations });
+});
+
+optBgAnim.addEventListener("click", () => {
+  updateSettings({ bgAnimated: !getSettings().bgAnimated });
+});
+
+bgBtns.forEach((b) => {
+  b.addEventListener("click", () => {
+    showFileError(null);
+    updateSettings({ bgMode: b.dataset.bgOpt as BgMode });
+  });
+});
+
+/** Какой файл сейчас редактируется: зависит от выбранного режима фона. */
+function fileKind(): MediaKind {
+  return getSettings().bgMode === "video" ? "video" : "image";
+}
+
+function showFileError(message: string | null): void {
+  bgFileError.hidden = !message;
+  bgFileError.textContent = message ?? "";
+}
+
+bgPick.addEventListener("click", () => {
+  bgFile.accept = fileKind() === "video" ? "video/mp4,video/webm,video/*" : "image/*";
+  bgFile.click();
+});
+
+bgFile.addEventListener("change", async () => {
+  const file = bgFile.files?.[0];
+  bgFile.value = ""; // чтобы тот же файл можно было выбрать повторно
+  if (!file) return;
+  showFileError(null);
+  bgPick.disabled = true;
+  try {
+    showFileError(await setBackgroundFile(fileKind(), file));
+  } finally {
+    bgPick.disabled = false;
+  }
+});
+
+bgClear.addEventListener("click", () => {
+  showFileError(null);
+  void clearBackgroundFile(fileKind());
+});
+
+bgDim.addEventListener("input", () => {
+  updateSettings({ bgDim: Number(bgDim.value) });
+});
+
+// ----- Аватар: режим 3D или 2D -----
+
+avatarBtns.forEach((b) => {
+  b.addEventListener("click", () =>
+    updateSettings({ avatarMode: b.dataset.avatarOpt as AvatarMode }),
+  );
+});
+
+// ----- Чат: кто отвечает (заглушка или Орфея) -----
+
+providerBtns.forEach((b) => {
+  b.addEventListener("click", () => {
+    const kind = b.dataset.providerOpt as ProviderKind;
+    if (kind === getSettings().provider) return;
+    updateSettings({ provider: kind });
+    log("system", "info", `Теперь в чате отвечает: ${providerFor(kind).name}.`);
+  });
 });
 
 editProfileBtn.addEventListener("click", () => hooks.onEditProfile());
@@ -348,10 +539,12 @@ onSettings(applySettings);
 
 export function initShell(h: ShellHooks): void {
   hooks = h;
-  ctlProvider.textContent = fakeProvider.name;
   clearBtn.disabled = store.getChats().length === 0;
   applySettings();
   refreshProfile();
+  initDebug();
+  initAvatarView();
+  initAchievementsView();
   showView("chat");
   window.addEventListener("resize", () => placeThumb(false));
   void document.fonts?.ready.then(() => placeThumb(false));
