@@ -1,4 +1,5 @@
 import "./shell.css";
+import "./dev.css";
 import { providerFor } from "./llm";
 import * as store from "./store";
 import {
@@ -18,6 +19,7 @@ import { initDebug, refreshDebug } from "./debug";
 import { describeError, log } from "./log";
 import { hideAvatarView, initAvatarView, renderAvatarView, showAvatarView } from "./avatar/view";
 import { initAchievementsView, refreshAchievementsView } from "./achievements/view";
+import { initDevMode } from "./dev";
 
 // ---------- Разделы ----------
 
@@ -554,6 +556,7 @@ export function initShell(h: ShellHooks): void {
   safeInit("Дебаггер", initDebug);
   safeInit("Аватар", initAvatarView);
   safeInit("Достижения", initAchievementsView);
+  safeInit("Режим разработчика", initDevMode);
   showView("chat");
   window.addEventListener("resize", () => placeThumb(false));
   void document.fonts?.ready.then(() => placeThumb(false));

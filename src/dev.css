@@ -1,0 +1,63 @@
+/* Режим разработчика: всё, что помечено data-dev-only, видно только при включённом режиме. */
+
+body:not(.dev-mode) [data-dev-only] {
+  display: none !important;
+}
+
+.dev-badge {
+  margin-left: 100px;
+  padding: 1px 7px;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: #e6b85a;
+  border: 1px solid rgba(217, 164, 65, 0.5);
+  border-radius: 999px;
+  background: rgba(217, 164, 65, 0.12);
+}
+
+.dev-panel {
+  border-style: dashed;
+  border-color: rgba(217, 164, 65, 0.45);
+  background: rgba(217, 164, 65, 0.05);
+}
+
+.dev-tag {
+  margin-left: 8px;
+  padding: 1px 6px;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  vertical-align: middle;
+  color: #e6b85a;
+  border: 1px solid rgba(217, 164, 65, 0.5);
+  border-radius: 999px;
+}
+
+.dev-sub {
+  margin: 16px 0 4px;
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dev-val {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.dev-empty {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.dev-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}

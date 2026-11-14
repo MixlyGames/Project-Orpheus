@@ -87,6 +87,7 @@ const listeners = new Set<(s: Settings) => void>();
 function applyToDocument(s: Settings): void {
   document.documentElement.dataset.theme = s.theme;
   document.body?.classList.toggle("no-motion", !s.animations);
+  document.body?.classList.toggle("dev-mode", s.devMode);
 }
 
 applyToDocument(current);

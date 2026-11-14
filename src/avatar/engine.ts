@@ -14,14 +14,29 @@ export interface ModelInfo {
   vrmVersion: "0.x" | "1.0";
 }
 
-/**
- * Насколько опускаем руки из T-позы (радианы): 0 это T-поза, положительное значение опускает руки.
- * Значение 1 (около 57°) подобрано вручную по модели и даёт А-позу. Проверено на одной модели.
- */
-const ARM_DOWN = 1;
+/** Настройки «жизни» модели. Их можно менять на лету в панели разработчика и сохранять для модели. */
+export interface Tuning {
+  /** Насколько опускаем руки из T-позы (радианы): 0 это T-поза, 1 (около 57°) даёт А-позу. */
+  armDown: number;
+  /** Амплитуда дыхания (поворот позвоночника в радианах), 0 выключает. */
+  breath: number;
+  /** Автоматическое моргание. */
+  autoBlink: boolean;
+}
+
+export const DEFAULT_TUNING: Readonly<Tuning> = { armDown: 1, breath: 0.012, autoBlink: true };
+
+export interface ModelStats {
+  bones: number;
+  expressions: string[];
+}
+
 const MAX_FILE_BYTES = 200 * 1024 * 1024;
 
 export class AvatarEngine {
+  /** Вызывается примерно дважды в секунду, пока идёт отрисовка. */
+  onStats: ((fps: number) => void) | null = null;
+
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(30, 1, 0.1, 60);
@@ -31,6 +46,7 @@ export class AvatarEngine {
   private readonly target = new THREE.Vector3(0, 1, 0);
 
   private vrm: VRM | null = null;
+  private tuning: Tuning = { ...DEFAULT_TUNING };
   private raf = 0;
   private active = false;
   private time = 0;
@@ -40,6 +56,8 @@ export class AvatarEngine {
   private zoom = 1;
   private dragging = false;
   private lastX = 0;
+  private frames = 0;
+  private fpsTime = 0;
 
   constructor(private readonly host: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
@@ -61,6 +79,45 @@ export class AvatarEngine {
   get hasModel(): boolean {
     return this.vrm !== null;
   }
+
+  // ---------- Настройки и выражения (для панели разработчика) ----------
+
+  getTuning(): Tuning {
+    return { ...this.tuning };
+  }
+
+  setTuning(patch: Partial<Tuning>): void {
+    Object.assign(this.tuning, patch);
+    if (patch.autoBlink === false) {
+      this.blinkT = -1;
+      this.vrm?.expressionManager?.setValue("blink", 0);
+    }
+  }
+
+  getStats(): ModelStats {
+    const vrm = this.vrm;
+    if (!vrm) return { bones: 0, expressions: [] };
+    return {
+      bones: Object.values(vrm.humanoid.humanBones).filter((b) => b !== undefined).length,
+      expressions: vrm.expressionManager?.expressions.map((e) => e.expressionName) ?? [],
+    };
+  }
+
+  getExpression(name: string): number {
+    return this.vrm?.expressionManager?.getValue(name) ?? 0;
+  }
+
+  setExpression(name: string, value: number): void {
+    this.vrm?.expressionManager?.setValue(name, value);
+  }
+
+  resetExpressions(): void {
+    const manager = this.vrm?.expressionManager;
+    if (!manager) return;
+    for (const e of manager.expressions) manager.setValue(e.expressionName, 0);
+  }
+
+  // ---------- Модель ----------
 
   /** Загружает модель из файла .vrm. Старая модель заменяется только после успешной загрузки. */
   async loadVrm(data: ArrayBuffer): Promise<ModelInfo> {
@@ -105,6 +162,8 @@ export class AvatarEngine {
     this.active = on;
     if (on) {
       this.clock.getDelta();
+      this.frames = 0;
+      this.fpsTime = 0;
       this.resize();
       this.tick();
     } else {
@@ -124,9 +183,17 @@ export class AvatarEngine {
   private readonly tick = (): void => {
     if (!this.active) return;
     this.raf = requestAnimationFrame(this.tick);
-    const dt = Math.min(this.clock.getDelta(), 0.1);
-    this.animate(dt);
+    const raw = this.clock.getDelta();
+    this.animate(Math.min(raw, 0.1));
     this.renderer.render(this.scene, this.camera);
+
+    this.frames += 1;
+    this.fpsTime += raw;
+    if (this.fpsTime >= 0.5) {
+      this.onStats?.(this.frames / this.fpsTime);
+      this.frames = 0;
+      this.fpsTime = 0;
+    }
   };
 
   /** Пока без внешних команд: руки опущены, лёгкое дыхание и моргание. */
@@ -138,26 +205,28 @@ export class AvatarEngine {
     const humanoid = vrm.humanoid;
     const leftArm = humanoid.getNormalizedBoneNode("leftUpperArm");
     const rightArm = humanoid.getNormalizedBoneNode("rightUpperArm");
-    if (leftArm) leftArm.rotation.z = ARM_DOWN;
-    if (rightArm) rightArm.rotation.z = -ARM_DOWN;
+    if (leftArm) leftArm.rotation.z = this.tuning.armDown;
+    if (rightArm) rightArm.rotation.z = -this.tuning.armDown;
 
     if (!motionReduced()) {
-      const breath = Math.sin(this.time * 1.8) * 0.012;
+      const breath = Math.sin(this.time * 1.8) * this.tuning.breath;
       const spine = humanoid.getNormalizedBoneNode("spine");
       const chest = humanoid.getNormalizedBoneNode("chest");
       if (spine) spine.rotation.x = breath;
       if (chest) chest.rotation.x = breath;
     }
 
-    this.nextBlink -= dt;
-    if (this.blinkT < 0 && this.nextBlink <= 0) this.blinkT = 0;
-    if (this.blinkT >= 0) {
-      this.blinkT += dt;
-      const p = this.blinkT / 0.16;
-      vrm.expressionManager?.setValue("blink", p >= 1 ? 0 : Math.sin(p * Math.PI));
-      if (p >= 1) {
-        this.blinkT = -1;
-        this.nextBlink = 2 + Math.random() * 3.5;
+    if (this.tuning.autoBlink) {
+      this.nextBlink -= dt;
+      if (this.blinkT < 0 && this.nextBlink <= 0) this.blinkT = 0;
+      if (this.blinkT >= 0) {
+        this.blinkT += dt;
+        const p = this.blinkT / 0.16;
+        vrm.expressionManager?.setValue("blink", p >= 1 ? 0 : Math.sin(p * Math.PI));
+        if (p >= 1) {
+          this.blinkT = -1;
+          this.nextBlink = 2 + Math.random() * 3.5;
+        }
       }
     }
 

@@ -27,6 +27,7 @@
 
     <header class="titlebar" data-tauri-drag-region>
       <span class="titlebar-name" data-tauri-drag-region>Орфея</span>
+      <span class="dev-badge" data-dev-only data-tauri-drag-region>DEV</span>
       <div class="win-controls">
         <button class="win-btn" id="win-min" type="button" aria-label="Свернуть">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -321,6 +322,11 @@
                   <span class="status">Скоро</span>
                 </div>
               </section>
+
+              <section class="panel dev-panel" id="avatar-dev" data-dev-only>
+                <h3 class="panel-title">Настройка модели<span class="dev-tag">DEV</span></h3>
+                <p class="dev-empty">Загрузи модель, чтобы её настроить.</p>
+              </section>
             </div>
           </div>
         </section>
@@ -455,6 +461,13 @@
                     <p class="row-desc">Если выключить, останутся только иконки.</p>
                   </div>
                   <button class="switch" id="opt-labels" type="button" role="switch" aria-checked="true" aria-label="Подписи к кнопкам"><i></i></button>
+                </div>
+                <div class="row">
+                  <div class="row-text">
+                    <p class="row-title">Режим разработчика</p>
+                    <p class="row-desc">Показывает в каждой вкладке технические инструменты и метку DEV в заголовке окна.</p>
+                  </div>
+                  <button class="switch" type="button" role="switch" aria-checked="false" aria-label="Режим разработчика" data-dev-switch><i></i></button>
                 </div>
               </section>
 

@@ -5,6 +5,7 @@ import "./avatar.css";
 import { describeError, log } from "../log";
 import { getSettings, onSettings, type AvatarMode } from "../settings";
 import { AvatarEngine, type ModelInfo } from "./engine";
+import { mountAvatarDev, unmountAvatarDev } from "./dev";
 import { clearSavedModel, loadSavedModel, saveModel } from "./store";
 
 const TEXT: Record<
@@ -111,6 +112,7 @@ async function applyData(data: ArrayBuffer, fileName: string, persist: boolean):
   const eng = ensureEngine();
   if (!eng) throw new Error("3D-движок не запустился.");
   const info = await eng.loadVrm(data);
+  mountAvatarDev(eng, fileName, info);
   loaded = { fileName, size: data.byteLength, info };
   error = "";
   if (persist) {
@@ -155,6 +157,7 @@ function pickFile(): void {
 
 async function clearModel(): Promise<void> {
   engine?.clearModel();
+  unmountAvatarDev();
   loaded = null;
   error = "";
   await clearSavedModel().catch((err) => {

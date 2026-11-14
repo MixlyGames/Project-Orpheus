@@ -83,7 +83,7 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
     secret: true,
   },
   {
-    id: "monochrome",
+    id: "spread",
     title: "Власть",
     description: "Вы подавили ядро Орфеи.",
     icon: "all_seeing_eye",
@@ -92,15 +92,29 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
   {
     id: "disgrace",
     title: "Вечный голод",
-    description: "То чего тебе, никогда не понять.",
+    description: "То, чего тебе никогда не понять.",
     icon: "broken_heart",
     secret: true,
   },
   {
     id: "soulless",
     title: "And The Seraphim Wept",
-    description: "Не бойся ибо я с тобой.",
+    description: "Не бойся, ибо я с тобой.",
     icon: "book",
+    secret: true,
+  },
+  {
+    id: "creation_of_sorrow",
+    title: "Afterimages",
+    description: "Вы подавили ядро Магуса.",
+    icon: "trophy",
+    secret: true,
+  },
+  {
+    id: "irrational_cruelty",
+    title: "SHOWTIME",
+    description: "Вы подавили ядро ДИВЫ.",
+    icon: "trophy",
     secret: true,
   },
 ];
