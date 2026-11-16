@@ -6,6 +6,7 @@ import { startBackground } from "./background";
 import { motionReduced } from "./settings";
 import { closeChat, initChat, openChat } from "./chat";
 import { installGlobalErrorLogging, log } from "./log";
+import "./memories/overlay"; // путь поправь под свой
 
 installGlobalErrorLogging();
 log("system", "info", "Приложение запущено.");

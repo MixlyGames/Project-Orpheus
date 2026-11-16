@@ -133,12 +133,22 @@ export function playMemories(options: PlayOptions = {}): Playback {
     requestAnimationFrame(() => overlay.classList.add("is-in"));
     await wait(OVERLAY_FADE_MS);
 
-    for (const phrase of phrases) {
-      if (stopped) break;
+  for (const phrase of phrases) {
+  if (stopped) break;
 
-      line.classList.remove("is-out");
-      sr.textContent = phrase;
-      typing = typeInto(text, phrase, { speed: options.speed });
+  line.classList.remove("is-out");
+  sr.textContent = phrase;
+
+  // --- случайная позиция и наклон ---
+  const padX = 8;
+  const padY = 12;
+  line.style.left = `${padX + Math.random() * (100 - padX * 2)}%`;
+  line.style.top  = `${padY + Math.random() * (100 - padY * 2)}%`;
+  const mag = 5 + Math.random() * 10;
+  const angle = (Math.random() < 0.5 ? -mag : mag).toFixed(2);
+  line.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+
+  typing = typeInto(text, phrase, { speed: options.speed });
       await typing.done;
       typing = null;
       if (stopped) break;

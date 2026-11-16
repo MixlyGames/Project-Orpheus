@@ -41,7 +41,7 @@ function jitter(base: number): number {
 
 /** Печатает `text` в `target` по одному символу. Возвращает управление печатью. */
 export function typeInto(target: HTMLElement, text: string, options: TypeOptions = {}): Typing {
-  const base = Math.max(8, options.speed ?? 55);
+  const base = Math.max(8, options.speed ?? 95);
   const chars = Array.from(text); // по символам, а не по кодовым единицам: эмодзи не рвутся
   let shown = 0;
   let timer = 0;

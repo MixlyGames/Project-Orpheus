@@ -6,9 +6,7 @@
   position: fixed;
   inset: 0;
   z-index: 900;
-  display: grid;
-  place-items: center;
-  padding: 64px 8vw;
+  padding: 0;                 /* было 64px 8vw */
   color: #e9e9ee;
   background: rgba(2, 2, 4, 0.86);
   -webkit-backdrop-filter: blur(8px);
@@ -27,9 +25,10 @@ body:has(.mem-overlay) .titlebar {
 }
 
 .mem-line {
+  position: absolute;         
   max-width: 26em;
   margin: 0;
-  font-size: clamp(1.4rem, 3.2vw, 2.4rem);
+  font-size: clamp(1.1rem, 2.4vw, 1.8rem);
   font-weight: 300;
   line-height: 1.5;
   letter-spacing: 0.02em;
