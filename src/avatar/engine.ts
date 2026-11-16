@@ -7,6 +7,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { VRMLoaderPlugin, VRMUtils, type VRM } from "@pixiv/three-vrm";
 import { motionReduced } from "../settings";
+import type { Avatar, AvatarFraming } from "./types";
 
 export interface ModelInfo {
   /** Название из метаданных модели (может быть пустым). */
@@ -33,7 +34,7 @@ export interface ModelStats {
 
 const MAX_FILE_BYTES = 200 * 1024 * 1024;
 
-export class AvatarEngine {
+export class AvatarEngine implements Avatar {
   /** Вызывается примерно дважды в секунду, пока идёт отрисовка. */
   onStats: ((fps: number) => void) | null = null;
 
@@ -59,7 +60,9 @@ export class AvatarEngine {
   private frames = 0;
   private fpsTime = 0;
 
-  constructor(private readonly host: HTMLElement) {
+  private framing: AvatarFraming = "full";
+
+  constructor(private host: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -233,15 +236,49 @@ export class AvatarEngine {
     vrm.update(dt);
   }
 
-  /** Ставит камеру так, чтобы модель целиком помещалась в кадр. */
+  /** Переносит холст в другой контейнер (вкладка «Аватар», квадрат в чате) и ставит нужный план. */
+  attach(host: HTMLElement, framing: AvatarFraming = "full"): void {
+    if (host === this.host && framing === this.framing) return;
+    if (host !== this.host) {
+      this.host = host;
+      this.resizeObserver.disconnect();
+      host.prepend(this.renderer.domElement);
+      this.resizeObserver.observe(host);
+    }
+    this.framing = framing;
+    this.resize();
+    this.frameModel();
+  }
+
+  /** Ставит камеру по выбранному плану: модель целиком, по пояс или лицо. */
   private frameModel(): void {
-    if (!this.vrm) return;
-    const box = new THREE.Box3().setFromObject(this.vrm.scene);
+    const vrm = this.vrm;
+    if (!vrm) return;
+    vrm.scene.updateMatrixWorld(true);
+
+    const box = new THREE.Box3().setFromObject(vrm.scene);
     const size = box.getSize(new THREE.Vector3());
-    this.target.copy(box.getCenter(new THREE.Vector3()));
+    const center = box.getCenter(new THREE.Vector3());
     const height = Math.max(size.y, 0.5);
+
+    // Высота головы: по кости, а если её нет, то по доле роста.
+    const headPos = new THREE.Vector3(center.x, box.min.y + height * 0.9, center.z);
+    vrm.humanoid.getNormalizedBoneNode("head")?.getWorldPosition(headPos);
+
+    // visible: сколько метров по вертикали должно поместиться в кадр.
+    const targetPos = center.clone();
+    let visible = height * 1.2;
+    if (this.framing === "bust") {
+      targetPos.y = headPos.y - height * 0.1;
+      visible = height * 0.5;
+    } else if (this.framing === "face") {
+      targetPos.y = headPos.y + height * 0.01;
+      visible = height * 0.24;
+    }
+
+    this.target.copy(targetPos);
     const fov = THREE.MathUtils.degToRad(this.camera.fov);
-    this.baseDistance = (height / 2 / Math.tan(fov / 2)) * 1.2;
+    this.baseDistance = visible / 2 / Math.tan(fov / 2);
     this.zoom = 1;
     this.pivot.rotation.y = 0;
     this.placeCamera();

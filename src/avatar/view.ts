@@ -43,6 +43,7 @@ let busy = false;
 let error = "";
 let loaded: LoadedModel | null = null;
 let engine: AvatarEngine | null = null;
+let faceHost: HTMLElement | null = null; // квадрат Орфеи в чате, пока открыт чат
 
 let stage: HTMLElement;
 let canvasHost: HTMLElement;
@@ -105,7 +106,13 @@ export function renderAvatarView(): void {
     el.hidden = el.dataset.avatarOnly !== mode;
   });
 
-  engine?.setActive(visible && show3d);
+  // Один движок рисует там, куда сейчас смотрят: во вкладке «Аватар» (целиком) или в квадрате чата (лицо).
+  if (engine && show3d) {
+    if (visible) engine.attach(canvasHost, "full");
+    else if (faceHost) engine.attach(faceHost, "face");
+  }
+  faceHost?.closest(".agent")?.classList.toggle("has-face", show3d);
+  engine?.setActive((visible || faceHost !== null) && show3d);
 }
 
 async function applyData(data: ArrayBuffer, fileName: string, persist: boolean): Promise<void> {
@@ -209,5 +216,18 @@ export function showAvatarView(): void {
 
 export function hideAvatarView(): void {
   visible = false;
-  engine?.setActive(false);
+  renderAvatarView();
+}
+
+/** Открыт чат: лицо Орфеи показывается в квадрате справа внизу (если выбрана 3D-модель). */
+export async function showFace(): Promise<void> {
+  faceHost = document.getElementById("agent-face");
+  if (!ready || !faceHost) return;
+  if (!restored) await restore();
+  renderAvatarView();
+}
+
+export function hideFace(): void {
+  faceHost = null;
+  renderAvatarView();
 }

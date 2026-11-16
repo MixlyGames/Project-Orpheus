@@ -72,6 +72,28 @@
   box-shadow: 0 0 10px rgba(143, 227, 168, 0.6);
 }
 
+/* Лицо Орфеи: холст движка аватара переезжает сюда, когда открыт чат и выбрана 3D-модель. */
+.agent-face {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+}
+
+.agent-face canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* в квадрате модель только смотрит, вращать её нужно во вкладке «Аватар» */
+}
+
+.agent.has-face .agent-face {
+  visibility: visible;
+}
+
+.agent.has-face .agent-star {
+  visibility: hidden;
+}
+
 /* Колонка стоит в правом поле и не отнимает место у чата. Показываем её только
    когда поле хватает по ширине (760 px чата по центру + 2 × 254 px по бокам),
    иначе чату важнее место. */

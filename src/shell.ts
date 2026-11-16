@@ -17,7 +17,14 @@ import { clearBackgroundFile, setBackgroundFile } from "./background";
 import { MEDIA_LIMITS, type MediaKind } from "./media";
 import { initDebug, refreshDebug } from "./debug";
 import { describeError, log } from "./log";
-import { hideAvatarView, initAvatarView, renderAvatarView, showAvatarView } from "./avatar/view";
+import {
+  hideAvatarView,
+  hideFace,
+  initAvatarView,
+  renderAvatarView,
+  showAvatarView,
+  showFace,
+} from "./avatar/view";
 import { initAchievementsView, refreshAchievementsView } from "./achievements/view";
 import { initDevMode } from "./dev";
 
@@ -205,6 +212,8 @@ export function showView(id: ViewId): void {
   if (id === "debug") refreshDebug();
   if (id === "avatar") showAvatarView();
   else hideAvatarView();
+  if (id === "chat") void showFace();
+  else hideFace();
   if (id === "achievements") refreshAchievementsView();
   viewListeners.forEach((l) => l(id));
 }
