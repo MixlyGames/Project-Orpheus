@@ -11,6 +11,7 @@ import { describeError, log } from "./log";
 import { createTraceBlock, type TraceBlock } from "./trace";
 import * as store from "./store";
 import { enableShell, initShell, onView, refreshProfile, showView, type ShellHooks } from "./shell";
+import { initRail } from "./rail";
 
 // ---------- Элементы ----------
 
@@ -24,7 +25,7 @@ const stage = document.querySelector<HTMLElement>(".stage");
 const app = byId<HTMLElement>("app");
 const chatEl = byId<HTMLElement>("chat");
 const chatTitle = byId<HTMLElement>("chat-title");
-const newChatBtn = byId<HTMLButtonElement>("new-chat");
+
 const emptyTitle = byId<HTMLElement>("empty-title");
 const emptySub = byId<HTMLElement>("empty-sub");
 const scroller = byId<HTMLElement>("scroller");
@@ -320,10 +321,6 @@ sendBtn.addEventListener("click", () => {
   else void send(input.value);
 });
 
-newChatBtn.addEventListener("click", () => {
-  store.setActive(null);
-  input.focus({ preventScroll: true });
-});
 
 document.querySelectorAll<HTMLButtonElement>(".chip").forEach((chip) => {
   chip.addEventListener("click", () => void send(chip.dataset.prompt ?? chip.textContent ?? ""));
@@ -342,6 +339,7 @@ onView((v) => {
 export function initChat(h: ChatHooks): void {
   hooks = h;
   initShell(h);
+  initRail();
   renderThread();
   updateUi();
 }

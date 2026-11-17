@@ -26,7 +26,9 @@ import {
   showFace,
 } from "./avatar/view";
 import { initAchievementsView, refreshAchievementsView } from "./achievements/view";
+import { initMemoriesDev } from "./memories/dev";
 import { initDevMode } from "./dev";
+
 
 // ---------- Разделы ----------
 
@@ -565,6 +567,8 @@ export function initShell(h: ShellHooks): void {
   safeInit("Дебаггер", initDebug);
   safeInit("Аватар", initAvatarView);
   safeInit("Достижения", initAchievementsView);
+  safeInit("Воспоминания", initMemoriesDev);
+
   safeInit("Режим разработчика", initDevMode);
   showView("chat");
   window.addEventListener("resize", () => placeThumb(false));

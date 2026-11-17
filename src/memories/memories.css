@@ -1,41 +1,40 @@
-/* Воспоминания Орфеи: тёмный оверлей с печатающимся текстом и редактор фраз в настройках. */
+/* Воспоминания Орфеи: фоновый слой с печатающимся текстом и редактор фраз в настройках. */
 
-/* ---------- Оверлей ---------- */
+/* ---------- Слой с текстом ---------- */
 
-.mem-overlay {
+/* Слой не затемняет экран и не ловит клики. «behind» лежит сразу над фоном и под интерфейсом
+   (у .app z-index: 1), «front» лежит поверх всего, но тоже пропускает клики сквозь себя. */
+.mem-layer {
   position: fixed;
   inset: 0;
-  z-index: 900;
-  padding: 0;                 /* было 64px 8vw */
-  color: #e9e9ee;
-  background: rgba(2, 2, 4, 0.86);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  opacity: 0;
-  transition: opacity 0.6s ease;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
 }
 
-.mem-overlay.is-in {
-  opacity: 1;
+.mem-layer.is-behind {
+  z-index: 0;
 }
 
-/* Кнопки окна остаются доступными поверх оверлея: из сцены всегда можно выйти. */
-body:has(.mem-overlay) .titlebar {
-  z-index: 901;
+.mem-layer.is-front {
+  z-index: 800;
 }
 
+/* Позицию, размер и наклон каждой строке выставляет overlay.ts. */
 .mem-line {
-  position: absolute;         
-  max-width: 26em;
+  position: absolute;
   margin: 0;
+  max-width: min(26em, 70vw);
   font-size: clamp(1.1rem, 2.4vw, 1.8rem);
   font-weight: 300;
   line-height: 1.5;
   letter-spacing: 0.02em;
-  text-align: center;
-  text-wrap: balance;
+  text-align: left;
   overflow-wrap: anywhere;
-  transition: opacity 0.45s ease;
+  color: var(--text);
+  opacity: 0.8;
+  text-shadow: 0 0 18px rgba(var(--fg-rgb), 0.22);
+  transition: opacity 1.4s ease;
 }
 
 .mem-line.is-out {
@@ -46,39 +45,20 @@ body:has(.mem-overlay) .titlebar {
   display: inline-block;
   width: 2px;
   height: 1em;
-  margin-left: 4px;
+  margin-left: 3px;
   vertical-align: -0.12em;
   background: currentColor;
   animation: mem-blink 1s steps(1) infinite;
+}
+
+.mem-caret[hidden] {
+  display: none;
 }
 
 @keyframes mem-blink {
   50% {
     opacity: 0;
   }
-}
-
-.mem-hint {
-  position: absolute;
-  bottom: 28px;
-  left: 0;
-  right: 0;
-  margin: 0;
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-align: center;
-  color: rgba(233, 233, 238, 0.4);
-}
-
-/* Видна только скринридеру. */
-.mem-sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
 }
 
 /* ---------- Редактор фраз (Настройки, режим разработчика) ---------- */

@@ -1,6 +1,7 @@
-// Оверлей воспоминаний: затемняет экран и по очереди печатает на нём фразы Орфеи.
-// Используется для предпросмотра (Настройки → «Воспоминания Орфеи») и позже для сцены подавления ядра.
-// Вызов: `const p = playMemories({ skippable: false }); await p.done;` или `p.stop()`.
+// Воспоминания Орфеи: фразы печатаются по буквам в случайных местах экрана под небольшим углом,
+// как в играх Project Moon (Lobotomy Corporation, Library of Ruina). Это не кат-сцена:
+// экран не затемняется, интерфейс остаётся рабочим, а текст живёт на фоне и по очереди гаснет.
+// Вызов: `const p = playMemories({ loop: true }); ... p.stop();` или `await p.done;` для одного прохода.
 
 import "./memories.css";
 import { log } from "../log";
@@ -10,31 +11,63 @@ import { typeInto, type Typing } from "./typewriter";
 export type PlayOptions = {
   /** Что показывать. По умолчанию текущий список из хранилища. */
   phrases?: string[];
-  /** Можно ли пропускать клавишами и кликом, закрывать по Esc. Для сюжетной сцены ставь false. */
-  skippable?: boolean;
   /** Средняя пауза между символами, мс. */
   speed?: number;
+  /**
+   * Где лежит текст. behind: под интерфейсом, на фоне (по умолчанию).
+   * front: поверх интерфейса, но клики проходят сквозь него.
+   */
+  layer?: "behind" | "front";
+  /** Повторять список по кругу, пока не вызван stop(). Для сцены подавления ядра. */
+  loop?: boolean;
+  /** Перемешивать порядок фраз (при loop каждый круг заново). */
+  shuffle?: boolean;
+  /** Пауза между появлениями фраз после окончания печати, мс: [минимум, максимум]. */
+  gap?: [number, number];
 };
 
 export type Playback = {
-  /** Выполнится, когда оверлей закрыт и убран. */
+  /** Выполнится, когда все фразы показаны и погасли (или после stop()). */
   done: Promise<void>;
-  /** Закрывает оверлей досрочно. */
+  /** Останавливает показ: недописанные фразы гаснут. */
   stop: () => void;
 };
 
-const OVERLAY_FADE_MS = 600;
-const LINE_FADE_MS = 450;
-const GAP_MS = 350;
+const FADE_MS = 1400;
+const TITLEBAR_H = 44;
+const EDGE = 28; // отступ текста от краёв окна, px
+const SPOT_TRIES = 10;
+
+type Line = {
+  el: HTMLElement;
+  x: number;
+  y: number;
+  typing: Typing | null;
+  /** Досрочно заканчивает «удержание» и запускает затухание. */
+  release: () => void;
+};
 
 let active: Playback | null = null;
 
-function holdFor(phrase: string): number {
-  return Math.min(4500, Math.max(1400, 1100 + Array.from(phrase).length * 45));
-}
-
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => window.setTimeout(r, ms));
+}
+
+function rand(min: number, max: number): number {
+  return min + Math.random() * (max - min);
+}
+
+function holdFor(phrase: string): number {
+  return Math.min(5000, Math.max(1800, 1400 + Array.from(phrase).length * 55));
+}
+
+function shuffled<T>(list: readonly T[]): T[] {
+  const a = [...list];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 function node<K extends keyof HTMLElementTagNameMap>(
@@ -46,124 +79,162 @@ function node<K extends keyof HTMLElementTagNameMap>(
   return el;
 }
 
+function createLayer(kind: "behind" | "front"): HTMLElement {
+  const layer = node("div", `mem-layer is-${kind}`);
+  layer.setAttribute("aria-hidden", "true"); // фоновый декор: скринридеру не нужен
+
+  if (kind === "behind") {
+    // Сразу после фона: интерфейс (.stage, .app, панель) лежит выше, текст виден сквозь стекло.
+    const bg = document.querySelector(".bg");
+    if (bg) bg.after(layer);
+    else document.body.prepend(layer);
+  } else {
+    document.body.append(layer);
+  }
+  return layer;
+}
+
+/** Выбирает центр для строки: из нескольких случайных точек берёт самую далёкую от уже видимых строк. */
+function pickSpot(
+  boxW: number,
+  boxH: number,
+  angleDeg: number,
+  others: readonly Line[],
+): { x: number; y: number } {
+  const rad = (Math.abs(angleDeg) * Math.PI) / 180;
+  const bw = boxW * Math.cos(rad) + boxH * Math.sin(rad); // размер с учётом наклона
+  const bh = boxW * Math.sin(rad) + boxH * Math.cos(rad);
+
+  const minX = EDGE + bw / 2;
+  const maxX = window.innerWidth - EDGE - bw / 2;
+  const minY = TITLEBAR_H + EDGE + bh / 2;
+  const maxY = window.innerHeight - EDGE - bh / 2;
+
+  // Если строка шире окна, ставим по центру.
+  const pickX = (): number => (maxX > minX ? rand(minX, maxX) : window.innerWidth / 2);
+  const pickY = (): number => (maxY > minY ? rand(minY, maxY) : window.innerHeight / 2);
+
+  let best = { x: pickX(), y: pickY() };
+  let bestDist = -1;
+
+  for (let i = 0; i < SPOT_TRIES; i++) {
+    const c = { x: pickX(), y: pickY() };
+    const dist = others.reduce((m, o) => Math.min(m, Math.hypot(o.x - c.x, o.y - c.y)), Infinity);
+    if (dist > bestDist) {
+      best = c;
+      bestDist = dist;
+    }
+  }
+  return best;
+}
+
 export function playMemories(options: PlayOptions = {}): Playback {
   active?.stop();
 
   const phrases = (options.phrases ?? getMemories()).map((s) => s.trim()).filter((s) => s !== "");
-  const skippable = options.skippable ?? true;
-
   if (phrases.length === 0) {
     log("system", "warn", "Воспоминания: нечего показывать, список фраз пуст.");
     return { done: Promise.resolve(), stop: () => {} };
   }
 
-  const overlay = node("div", "mem-overlay");
-  overlay.setAttribute("role", "dialog");
-  overlay.setAttribute("aria-modal", "true");
-  overlay.setAttribute("aria-label", "Воспоминание Орфеи");
-
-  const line = node("p", "mem-line");
-  const text = node("span", "mem-text");
-  const caret = node("span", "mem-caret");
-  text.setAttribute("aria-hidden", "true");
-  caret.setAttribute("aria-hidden", "true");
-  line.append(text, caret);
-
-  // Для скринридера фраза объявляется целиком один раз, а не по буквам.
-  const sr = node("span", "mem-sr");
-  sr.setAttribute("aria-live", "polite");
-
-  overlay.append(line, sr);
-
-  if (skippable) {
-    const hint = node("p", "mem-hint");
-    hint.textContent = "Клик — дальше · Esc — закрыть";
-    overlay.append(hint);
-  }
+  const gap = options.gap ?? [900, 1900];
+  const layer = createLayer(options.layer ?? "behind");
+  const lines = new Set<Line>();
+  const lives: Promise<void>[] = [];
 
   let stopped = false;
-  let typing: Typing | null = null;
-  let wake: (() => void) | null = null;
-
-  /** Ожидание, которое можно прервать пропуском. */
-  const wait = (ms: number): Promise<void> =>
-    new Promise((resolve) => {
-      const finish = (): void => {
-        window.clearTimeout(timer);
-        wake = null;
-        resolve();
-      };
-      const timer = window.setTimeout(finish, ms);
-      wake = finish;
-    });
-
-  const advance = (): void => {
-    if (!skippable) return;
-    if (typing) typing.finish();
-    else wake?.();
-  };
+  let wakeGap: (() => void) | null = null;
 
   const stop = (): void => {
     if (stopped) return;
     stopped = true;
-    typing?.cancel();
-    wake?.();
+    lines.forEach((l) => {
+      l.typing?.cancel();
+      l.release();
+    });
+    wakeGap?.();
   };
 
-  const onKey = (e: KeyboardEvent): void => {
-    // Пока идут воспоминания, сочетания клавиш приложения не работают.
-    e.stopPropagation();
-    if (e.key === "Tab") e.preventDefault();
-    if (!skippable) return;
-    if (e.key === "Escape") {
-      e.preventDefault();
-      stop();
-    } else if (e.key === " " || e.key === "Enter" || e.key === "ArrowRight") {
-      e.preventDefault();
-      advance();
-    }
-  };
+  /** Создаёт строку в случайном месте и начинает печатать. Возвращает, когда печать закончена. */
+  const spawn = (phrase: string): Promise<void> => {
+    const el = node("p", "mem-line");
+    const text = node("span", "mem-text");
+    const caret = node("span", "mem-caret");
+    el.append(text, caret);
 
-  overlay.addEventListener("click", advance);
-  document.addEventListener("keydown", onKey, true);
-  (document.activeElement as HTMLElement | null)?.blur();
-  document.body.append(overlay);
+    // Сначала невидимо выставляем полный текст, чтобы узнать размер: во время печати
+    // рамка не должна «прыгать» и менять переносы строк.
+    el.style.visibility = "hidden";
+    text.textContent = phrase;
+    caret.hidden = true;
+    layer.append(el);
+
+    const w = Math.ceil(el.offsetWidth) + 10;
+    const h = Math.ceil(el.offsetHeight);
+    const mag = rand(5, 15);
+    const angle = Math.random() < 0.5 ? -mag : mag;
+    const spot = pickSpot(w, h, angle, [...lines]);
+
+    el.style.width = `${w}px`;
+    el.style.height = `${h}px`;
+    el.style.left = `${spot.x}px`;
+    el.style.top = `${spot.y}px`;
+    el.style.transform = `translate(-50%, -50%) rotate(${angle.toFixed(2)}deg)`;
+    el.style.visibility = "";
+    caret.hidden = false;
+
+    let release: () => void = () => {};
+    const line: Line = { el, x: spot.x, y: spot.y, typing: null, release: () => release() };
+    lines.add(line);
+
+    const typing = typeInto(text, phrase, { speed: options.speed });
+    line.typing = typing;
+
+    const life = (async (): Promise<void> => {
+      await typing.done;
+      caret.remove();
+      line.typing = null;
+
+      if (!stopped) {
+        await new Promise<void>((resolve) => {
+          const timer = window.setTimeout(resolve, holdFor(phrase));
+          release = () => {
+            window.clearTimeout(timer);
+            resolve();
+          };
+        });
+      }
+
+      el.classList.add("is-out");
+      await sleep(FADE_MS);
+      el.remove();
+      lines.delete(line);
+    })();
+    lives.push(life);
+
+    return typing.done;
+  };
 
   const run = async (): Promise<void> => {
-    requestAnimationFrame(() => overlay.classList.add("is-in"));
-    await wait(OVERLAY_FADE_MS);
+    do {
+      const round = options.shuffle ? shuffled(phrases) : phrases;
+      for (const phrase of round) {
+        if (stopped) break;
+        await spawn(phrase);
+        if (stopped) break;
+        await new Promise<void>((resolve) => {
+          const timer = window.setTimeout(resolve, rand(gap[0], gap[1]));
+          wakeGap = () => {
+            window.clearTimeout(timer);
+            resolve();
+          };
+        });
+        wakeGap = null;
+      }
+    } while (options.loop && !stopped);
 
-  for (const phrase of phrases) {
-  if (stopped) break;
-
-  line.classList.remove("is-out");
-  sr.textContent = phrase;
-
-  // --- случайная позиция и наклон ---
-  const padX = 8;
-  const padY = 12;
-  line.style.left = `${padX + Math.random() * (100 - padX * 2)}%`;
-  line.style.top  = `${padY + Math.random() * (100 - padY * 2)}%`;
-  const mag = 5 + Math.random() * 10;
-  const angle = (Math.random() < 0.5 ? -mag : mag).toFixed(2);
-  line.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
-
-  typing = typeInto(text, phrase, { speed: options.speed });
-      await typing.done;
-      typing = null;
-      if (stopped) break;
-
-      await wait(holdFor(phrase));
-      if (stopped) break;
-
-      line.classList.add("is-out");
-      await wait(LINE_FADE_MS);
-      if (stopped) break;
-      await wait(GAP_MS);
-    }
-
-    overlay.classList.remove("is-in");
-    await sleep(OVERLAY_FADE_MS);
+    // Последние строки дожидаются своего затухания.
+    await Promise.allSettled(lives);
   };
 
   const done = run()
@@ -171,13 +242,12 @@ export function playMemories(options: PlayOptions = {}): Playback {
       log("system", "error", "Воспоминания: показ прервался из-за ошибки.", String(err));
     })
     .finally(() => {
-      document.removeEventListener("keydown", onKey, true);
-      overlay.remove();
+      layer.remove();
       if (active === playback) active = null;
     });
 
   const playback: Playback = { done, stop };
   active = playback;
-  log("system", "debug", `Воспоминания: показ ${phrases.length} фраз.`);
+  log("system", "debug", `Воспоминания: показ ${phrases.length} фраз${options.loop ? " по кругу" : ""}.`);
   return playback;
 }
