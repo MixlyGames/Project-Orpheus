@@ -24,6 +24,8 @@ export type PlayOptions = {
   shuffle?: boolean;
   /** Пауза между появлениями фраз после окончания печати, мс: [минимум, максимум]. */
   gap?: [number, number];
+  /** Максимальное количество одновременно отображаемых фраз (по умолчанию 3) */
+  maxConcurrent?: number;
 };
 
 export type Playback = {
@@ -215,15 +217,28 @@ export function playMemories(options: PlayOptions = {}): Playback {
     return typing.done;
   };
 
+  const maxConcurrent = options.maxConcurrent ?? 2; // Сколько фраз могут печататься/висеть одновременно
+  const spawnInterval = options.gap ?? [400, 900]; // Пауза между появлениями новых строк
+
   const run = async (): Promise<void> => {
     do {
       const round = options.shuffle ? shuffled(phrases) : phrases;
+      
       for (const phrase of round) {
         if (stopped) break;
-        await spawn(phrase);
+
+        // Если активных строк уже слишком много, ждём, пока какая-нибудь освободится
+        while (lines.size >= maxConcurrent && !stopped) {
+          await sleep(100);
+        }
         if (stopped) break;
+
+        // Запускаем спавн фразы АВТОНОМНО (без await), чтобы она жила своей жизнью
+        spawn(phrase).catch(() => {});
+
+        // Пауза перед появлением следующей строки
         await new Promise<void>((resolve) => {
-          const timer = window.setTimeout(resolve, rand(gap[0], gap[1]));
+          const timer = window.setTimeout(resolve, rand(spawnInterval[0], spawnInterval[1]));
           wakeGap = () => {
             window.clearTimeout(timer);
             resolve();
@@ -231,9 +246,16 @@ export function playMemories(options: PlayOptions = {}): Playback {
         });
         wakeGap = null;
       }
+
+      // Если loop выключен, ждём завершения оставшихся на экране строк перед выходом из do-while
+      if (!options.loop) {
+        while (lines.size > 0 && !stopped) {
+          await sleep(100);
+        }
+      }
     } while (options.loop && !stopped);
 
-    // Последние строки дожидаются своего затухания.
+    // Дожидаемся завершения всех затуханий
     await Promise.allSettled(lives);
   };
 

@@ -84,7 +84,7 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
   },
   {
     id: "spread",
-    title: "Власть",
+    title: "To Your Oblivion",
     description: "Вы подавили ядро Орфеи.",
     icon: "all_seeing_eye",
     secret: true,
