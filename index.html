@@ -172,67 +172,36 @@
         <!-- Чат -->
         <section class="view is-active" data-view="chat">
           <div class="chat-wrap" id="chat-wrap" data-mode="chat">
-          <!-- Рейка: свёрнутая панель чатов. Набор кнопок зависит от режима (data-mode):
-               в чате три кнопки, на экране «Заглушка» две. Логика в src/rail.ts. -->
-          <div class="rail" id="rail">
-            <button class="rail-btn rail-btn-main" id="rail-expand" type="button" aria-label="Открыть панель чатов" aria-expanded="false" aria-controls="rail-panel" title="Панель чатов">
-              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M12 2C12.8 8.2 15.8 11.2 22 12C15.8 12.8 12.8 15.8 12 22C11.2 15.8 8.2 12.8 2 12C8.2 11.2 11.2 8.2 12 2Z" />
-              </svg>
+          <!-- Рейка: один элемент. Свёрнутая показывает иконки, раскрытая (кнопка со звездой) растёт в панель
+               с подписями и списком чатов поверх чата. Набор кнопок зависит от режима (data-mode).
+               Закрывается по клику снаружи и Esc. Логика в src/rail.ts. -->
+          <aside class="rail" id="rail" aria-label="Панель чатов">
+            <button class="rail-item rail-toggle" id="rail-toggle" type="button" aria-expanded="false" aria-controls="rail-list" aria-label="Открыть панель чатов" title="Панель чатов">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C12.8 8.2 15.8 11.2 22 12C15.8 12.8 12.8 15.8 12 22C11.2 15.8 8.2 12.8 2 12C8.2 11.2 11.2 8.2 12 2Z" /></svg>
+              <span class="rail-label rail-brand">Орфея</span>
             </button>
-            <button class="rail-btn" type="button" data-rail-go="stub" data-rail-mode="chat" aria-label="Пустота" title="Пустота">
+            <button class="rail-item" type="button" data-rail-go="stub" data-rail-mode="chat" title="Пустота">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <rect x="2.5" y="3" width="11" height="10" rx="2.5" />
                 <path d="M2.5 6.5h11M6.5 6.5V13" />
               </svg>
+              <span class="rail-label">Пустота</span>
             </button>
-            <button class="rail-btn" type="button" data-rail-go="new" data-rail-mode="chat" aria-label="Новый чат" title="Новый чат">
+            <button class="rail-item" type="button" data-rail-go="new" data-rail-mode="chat" title="Новый чат">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M9 3H5.5A2.5 2.5 0 0 0 3 5.5v5A2.5 2.5 0 0 0 5.5 13h5a2.5 2.5 0 0 0 2.5-2.5V7" />
                 <path d="M12.2 2.8a1.2 1.2 0 0 1 1.7 1.7L8.5 9.9l-2.2.5.5-2.2z" />
               </svg>
+              <span class="rail-label">Новый чат</span>
             </button>
-            <button class="rail-btn" type="button" data-rail-go="chat" data-rail-mode="stub" aria-label="Чат" title="Чат">
+            <button class="rail-item" type="button" data-rail-go="chat" data-rail-mode="stub" title="Чат">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M3 4.5A1.5 1.5 0 0 1 4.5 3h7A1.5 1.5 0 0 1 13 4.5v5a1.5 1.5 0 0 1-1.5 1.5H8l-3 2.5V11h-.5A1.5 1.5 0 0 1 3 9.5z" />
               </svg>
-            </button>
-          </div>
-
-          <!-- Та же рейка в развёрнутом виде: плавает поверх чата, закрывается по клику снаружи и Esc. -->
-          <aside class="rail-panel" id="rail-panel" aria-label="Панель чатов" inert aria-hidden="true">
-            <div class="rail-head">
-              <button class="rail-btn" id="rail-collapse" type="button" aria-label="Свернуть панель" title="Свернуть">
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect x="2.5" y="3" width="11" height="10" rx="2.5" />
-                  <path d="M6.5 3v10" />
-                </svg>
-              </button>
-              <span class="rail-brand">Орфея<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C12.8 8.2 15.8 11.2 22 12C15.8 12.8 12.8 15.8 12 22C11.2 15.8 8.2 12.8 2 12C8.2 11.2 11.2 8.2 12 2Z" /></svg></span>
-            </div>
-
-            <button class="rail-item" type="button" data-rail-go="stub" data-rail-mode="chat">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="2.5" y="3" width="11" height="10" rx="2.5" />
-                <path d="M2.5 6.5h11M6.5 6.5V13" />
-              </svg>
-              <span>Пустота</span>
-            </button>
-            <button class="rail-item" type="button" data-rail-go="new" data-rail-mode="chat">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M9 3H5.5A2.5 2.5 0 0 0 3 5.5v5A2.5 2.5 0 0 0 5.5 13h5a2.5 2.5 0 0 0 2.5-2.5V7" />
-                <path d="M12.2 2.8a1.2 1.2 0 0 1 1.7 1.7L8.5 9.9l-2.2.5.5-2.2z" />
-              </svg>
-              <span>Новый чат</span>
-            </button>
-            <button class="rail-item" type="button" data-rail-go="chat" data-rail-mode="stub">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M3 4.5A1.5 1.5 0 0 1 4.5 3h7A1.5 1.5 0 0 1 13 4.5v5a1.5 1.5 0 0 1-1.5 1.5H8l-3 2.5V11h-.5A1.5 1.5 0 0 1 3 9.5z" />
-              </svg>
-              <span>Чат</span>
+              <span class="rail-label">Чат</span>
             </button>
 
-            <div class="rail-chats" data-rail-mode="chat">
+            <div class="rail-chats" data-rail-mode="chat" inert>
               <p class="rail-sub">Чаты</p>
               <div class="rail-list" id="rail-list"></div>
             </div>

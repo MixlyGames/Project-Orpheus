@@ -1,23 +1,25 @@
-/* ---------- Рейка и панель чатов (src/rail.ts) ---------- */
+/* ---------- Рейка (src/rail.ts) ----------
+   Один элемент: свёрнутая рейка из иконок и она же, раскрытая в панель с подписями
+   и списком чатов. Закреплена сверху (25% высоты раздела), поэтому кнопки при
+   раскрытии остаются на месте, а растёт только ширина и высота. */
 
 /* Чат уступает левое поле рейке. Поле такое же и справа, поэтому чат остаётся по центру. */
 .chat-wrap .chat {
   padding-inline: 62px;
 }
 
-/* ---------- Свёрнутая рейка ---------- */
-
 .rail {
   position: absolute;
-  z-index: 5;
-  /* По центру слева, на одном уровне с развёрнутой панелью. */
-  top: 35%;
-  transform: translateY(-50%);
+  z-index: 6;
+  top: 25%;
   left: 8px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+  width: 46px; /* кнопка 36 + отступы 2×4 + рамка 2×1 */
   padding: 4px;
+  overflow: hidden;
+  interpolate-size: allow-keywords; /* плавная высота auto -> 50%, где браузер умеет */
   border-radius: 18px;
   border: 1px solid var(--line);
   background: rgba(var(--fg-rgb), 0.045);
@@ -25,53 +27,28 @@
   box-shadow:
     0 16px 40px rgba(var(--shadow-rgb), 0.35),
     inset 0 1px 0 rgba(var(--fg-rgb), 0.06);
-  transition: opacity 0.25s ease, visibility 0s;
+  transition:
+    width 0.32s cubic-bezier(0.2, 0.7, 0.2, 1),
+    height 0.32s cubic-bezier(0.2, 0.7, 0.2, 1),
+    background 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
-/* Пока открыта панель, рейка прячется: панель вырастает из того же места. */
 .chat-wrap.is-rail-open .rail {
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.15s ease, visibility 0s linear 0.15s;
+  width: min(264px, calc(100% - 16px));
+  height: 50%;
+  min-height: 300px;
+  max-height: calc(75% - 8px);
+  background: var(--glass);
+  box-shadow:
+    0 24px 60px rgba(var(--shadow-rgb), 0.5),
+    inset 0 1px 0 rgba(var(--fg-rgb), 0.06);
 }
 
-.rail-btn {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  color: var(--muted);
-  border: 1px solid transparent;
-  border-radius: 13px;
-  background: transparent;
-  cursor: pointer;
-  transition: color 0.2s, background 0.2s, border-color 0.2s;
-}
-
-.rail-btn svg {
-  width: 18px;
-  height: 18px;
-}
-
-.rail-btn:hover {
-  color: var(--text);
-  background: rgba(var(--fg-rgb), 0.08);
-}
-
-.rail-btn:focus-visible,
-.rail-item:focus-visible,
-.rail-chat:focus-visible {
-  outline: 2px solid rgba(var(--fg-rgb), 0.45);
-  outline-offset: -2px;
-}
-
-/* Первая кнопка (звезда) раскрывает панель, поэтому выделена. */
-.rail-btn-main {
-  color: var(--text);
-  background: rgba(var(--fg-rgb), 0.12);
-  border-color: rgba(var(--fg-rgb), 0.14);
+/* На экране «Заглушка» списка чатов нет: высота по содержимому. */
+.chat-wrap[data-mode="stub"].is-rail-open .rail {
+  height: auto;
+  min-height: 0;
 }
 
 /* Набор кнопок зависит от режима: [data-rail-mode] показывается только в своём. */
@@ -80,99 +57,70 @@
   display: none;
 }
 
-/* ---------- Развёрнутая панель ---------- */
-
-.rail-panel {
-  position: absolute;
-  z-index: 6;
-  /* Небольшая панель по центру слева: половина высоты (по 25% сверху и снизу). */
-  top: 0;
-  bottom: 0;
-  left: 8px;
-  height: 50%;
-  min-height: 300px;
-  max-height: calc(100% - 16px);
-  margin-block: auto;
-  width: min(264px, calc(100% - 16px));
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 10px;
-  border-radius: 22px;
-  border: 1px solid var(--line);
-  background: var(--glass);
-  backdrop-filter: blur(26px) saturate(125%);
-  box-shadow:
-    0 24px 60px rgba(var(--shadow-rgb), 0.5),
-    inset 0 1px 0 rgba(var(--fg-rgb), 0.06);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateX(-12px) scale(0.98);
-  transform-origin: left center;
-  transition:
-    opacity 0.2s ease,
-    transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
-    visibility 0s linear 0.3s;
-}
-
-.chat-wrap.is-rail-open .rail-panel {
-  opacity: 1;
-  visibility: visible;
-  transform: none;
-  transition:
-    opacity 0.25s ease,
-    transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1),
-    visibility 0s;
-}
-
-.rail-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-bottom: 8px;
-}
-
-.rail-brand {
-  display: inline-flex;
-  align-items: flex-start;
-  gap: 3px;
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.rail-brand svg {
-  width: 9px;
-  height: 9px;
-  margin-top: 4px;
-}
+/* ---------- Кнопки ---------- */
 
 .rail-item {
   display: flex;
   align-items: center;
+  flex: none;
   gap: 12px;
   width: 100%;
-  padding: 10px 12px;
+  height: 36px;
+  padding: 0 9px; /* иконка 18 px ровно по центру свёрнутой кнопки */
   font: inherit;
   font-size: 0.92rem;
   text-align: left;
-  color: var(--text);
+  color: var(--muted);
   border: 0;
-  border-radius: 14px;
+  border-radius: 13px;
   background: transparent;
   cursor: pointer;
-  transition: background 0.2s;
-}
-
-.rail-item:hover {
-  background: rgba(var(--fg-rgb), 0.07);
+  transition: color 0.2s, background 0.2s;
 }
 
 .rail-item svg {
   width: 18px;
   height: 18px;
   flex: none;
-  color: var(--muted);
+}
+
+.rail-item:hover {
+  color: var(--text);
+  background: rgba(var(--fg-rgb), 0.08);
+}
+
+.rail-item:focus-visible,
+.rail-chat:focus-visible {
+  outline: 2px solid rgba(var(--fg-rgb), 0.45);
+  outline-offset: -2px;
+}
+
+/* Первая кнопка (звезда) раскрывает и сворачивает рейку, поэтому выделена. */
+.rail-toggle {
+  color: var(--text);
+  background: rgba(var(--fg-rgb), 0.12);
+}
+
+.chat-wrap.is-rail-open .rail-toggle {
+  background: transparent;
+}
+
+/* Подписи проявляются, когда рейка уже расширилась. */
+.rail-label {
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.chat-wrap.is-rail-open .rail-label {
+  opacity: 1;
+  color: var(--text);
+  transition: opacity 0.25s ease 0.12s;
+}
+
+.rail-brand {
+  font-size: 1.05rem;
+  font-weight: 600;
 }
 
 /* ---------- Список чатов ---------- */
@@ -180,9 +128,27 @@
 .rail-chats {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex: none;
+  height: 0;
+  overflow: hidden;
   min-height: 0;
-  margin-top: 12px;
+  margin-top: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.1s ease,
+    visibility 0s linear 0.1s;
+}
+
+.chat-wrap.is-rail-open .rail-chats {
+  flex: 1;
+  height: auto;
+  margin-top: 8px;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.25s ease 0.15s,
+    visibility 0s;
 }
 
 .rail-sub {
@@ -297,7 +263,8 @@
 
 /* Анимации выключены в настройках или в системе. */
 body.no-motion .rail,
-body.no-motion .rail-panel,
+body.no-motion .rail-label,
+body.no-motion .rail-chats,
 body.no-motion .stub-pane,
 body.no-motion .chat-wrap .chat,
 body.no-motion .chat-wrap .agent {
@@ -306,7 +273,8 @@ body.no-motion .chat-wrap .agent {
 
 @media (prefers-reduced-motion: reduce) {
   .rail,
-  .rail-panel,
+  .rail-label,
+  .rail-chats,
   .stub-pane,
   .chat-wrap .chat,
   .chat-wrap .agent {
