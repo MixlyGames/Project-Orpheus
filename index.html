@@ -369,6 +369,184 @@
           </div>
         </section>
 
+        <!-- Модель: окно с колонкой кнопок. Рейки здесь нет (она живёт только в разделе «Чат»).
+             Вкладки переключает src/model/view.ts. Большинство вкладок пока заглушки. -->
+        <section class="view" data-view="model" inert aria-hidden="true">
+          <div class="page">
+            <div class="page-inner">
+              <header class="page-head">
+                <button class="back-btn" type="button" data-back="control">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5" /></svg>
+                  Управление
+                </button>
+                <h2 class="title title-sm">Модель</h2>
+                <p class="subtitle">Кто отвечает, как относится, что помнит и чем умеет пользоваться.</p>
+              </header>
+
+              <div class="model-layout">
+                <nav class="model-tabs" role="tablist" aria-orientation="vertical" aria-label="Разделы модели">
+                  <button class="model-tab is-active" type="button" role="tab" id="model-tab-provider" data-model-tab="provider" aria-selected="true" aria-controls="model-pane-provider">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="2.5" /><path d="M6 6.5h4M6 9.5h2.5" /></svg>
+                    <span>Провайдер</span>
+                  </button>
+                  <button class="model-tab" type="button" role="tab" id="model-tab-relations" data-model-tab="relations" aria-selected="false" aria-controls="model-pane-relations" tabindex="-1">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13.5S2.5 10.2 2.5 6.3A2.8 2.8 0 0 1 8 5.2a2.8 2.8 0 0 1 5.5 1.1c0 3.9-5.5 7.2-5.5 7.2z" /></svg>
+                    <span>Отношения</span>
+                  </button>
+                  <button class="model-tab" type="button" role="tab" id="model-tab-memory" data-model-tab="memory" aria-selected="false" aria-controls="model-pane-memory" tabindex="-1">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="8" cy="4.5" rx="5" ry="2" /><path d="M3 4.5v7c0 1.1 2.2 2 5 2s5-.9 5-2v-7M3 8c0 1.1 2.2 2 5 2s5-.9 5-2" /></svg>
+                    <span>Память</span>
+                  </button>
+                  <button class="model-tab" type="button" role="tab" id="model-tab-tools" data-model-tab="tools" aria-selected="false" aria-controls="model-pane-tools" tabindex="-1">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 2.5a3 3 0 0 0-2.8 4L2.8 11.4a1.4 1.4 0 0 0 2 2L9.6 8.5a3 3 0 0 0 4-2.8l-1.8 1.8-1.7-.4-.4-1.7z" /></svg>
+                    <span>Тулзы</span>
+                  </button>
+                  <button class="model-tab model-tab-power is-locked" type="button" role="tab" id="model-tab-power" data-model-tab="power" aria-selected="false" aria-controls="model-pane-power" tabindex="-1">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 11.5 2 5l3.2 2.6L8 3.5l2.8 4.1L14 5l-.5 6.5z" /><path d="M3 13.5h10" /></svg>
+                    <span>Власть</span>
+                    <svg class="model-lock" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="7" width="9" height="6.5" rx="1.8" /><path d="M5.5 7V5.2a2.5 2.5 0 0 1 5 0V7" /></svg>
+                  </button>
+                </nav>
+
+                <div class="model-window">
+                  <!-- Провайдер -->
+                  <section class="model-pane is-active" id="model-pane-provider" data-model-pane="provider" role="tabpanel" aria-labelledby="model-tab-provider">
+                    <h3 class="panel-title">Провайдер</h3>
+                    <div class="row">
+                      <div class="row-text">
+                        <p class="row-title">Кто отвечает</p>
+                        <p class="row-desc">Заглушка работает без сервера. Для Орфеи сначала запусти orphea_server.py в PyCharm.</p>
+                      </div>
+                      <div class="seg" role="group" aria-label="Кто отвечает">
+                        <button type="button" data-provider-opt="fake" aria-pressed="true">Заглушка</button>
+                        <button type="button" data-provider-opt="orphea" aria-pressed="false">Орфея</button>
+                      </div>
+                    </div>
+                    <div class="row">
+                      <div class="row-text">
+                        <p class="row-title">Адрес сервера Орфеи</p>
+                        <p class="row-desc">Сейчас ws://127.0.0.1:8765/chat, только localhost.</p>
+                      </div>
+                      <span class="status">Скоро</span>
+                    </div>
+                    <div class="row">
+                      <div class="row-text">
+                        <p class="row-title">API-провайдеры</p>
+                        <p class="row-desc">Облачные модели по ключу.</p>
+                      </div>
+                      <span class="status">Скоро</span>
+                    </div>
+                    <div class="row">
+                      <div class="row-text">
+                        <p class="row-title">Локальные модели</p>
+                        <p class="row-desc">Ollama, LM Studio, llama.cpp server.</p>
+                      </div>
+                      <span class="status">Скоро</span>
+                    </div>
+                  </section>
+
+                  <!-- Отношения -->
+                  <section class="model-pane" id="model-pane-relations" data-model-pane="relations" role="tabpanel" aria-labelledby="model-tab-relations" hidden>
+                    <h3 class="panel-title">Отношения</h3>
+                    <div class="row">
+                      <div class="row-text">
+                        <p class="row-title">Эмоции</p>
+                        <p class="row-desc">Настроение Орфеи, которое влияет на ответы, аватар и фон.</p>
+                      </div>
+                      <span class="status">Скоро</span>
+                    </div>
+                    <div class="row">
+                      <div class="row-text">
+                        <p class="row-title">Отношение к тебе</p>
+                        <p class="row-desc">Как меняется близость по ходу общения.</p>
+                      </div>
+                      <span class="status">Скоро</span>
+                    </div>
+                    <div class="row">
+                      <div class="row-text">
+                        <p class="row-title">Характер</p>
+                        <p class="row-desc">Манера речи и черты личности.</p>
+                      </div>
+                      <span class="status">Скоро</span>
+                    </div>
+                  </section>
+
+                  <!-- Память -->
+                  <section class="model-pane" id="model-pane-memory" data-model-pane="memory" role="tabpanel" aria-labelledby="model-tab-memory" hidden>
+                    <h3 class="panel-title">Память</h3>
+                    <div class="row">
+                      <div class="row-text">
+                        <p class="row-title">Память чатов</p>
+                        <p class="row-desc">Сколько реплик истории уходит модели и что сохраняется.</p>
+                      </div>
+                      <span class="status">Скоро</span>
+                    </div>
+                    <div class="row">
+                      <div class="row-text">
+                        <p class="row-title">Долговременная память</p>
+                        <p class="row-desc">Векторная база (Chroma или другая): что Орфея запоминает навсегда.</p>
+                      </div>
+                      <span class="status">Скоро</span>
+                    </div>
+                    <div class="row">
+                      <div class="row-text">
+                        <p class="row-title">Что она помнит о тебе</p>
+                        <p class="row-desc">Просмотр, правка и удаление записей.</p>
+                      </div>
+                      <span class="status">Скоро</span>
+                    </div>
+                  </section>
+
+                  <!-- Тулзы -->
+                  <section class="model-pane" id="model-pane-tools" data-model-pane="tools" role="tabpanel" aria-labelledby="model-tab-tools" hidden>
+                    <h3 class="panel-title">Тулзы</h3>
+                    <p class="row-desc model-note">Встроенные инструменты самой Орфеи. Это не то же самое, что подключаемые MCP-серверы: они появятся отдельно, в «Приложениях».</p>
+                    <div class="row">
+                      <div class="row-text">
+                        <p class="row-title">Веб-поиск</p>
+                        <p class="row-desc">Сейчас работает через hands.py на сервере Орфеи.</p>
+                      </div>
+                      <span class="status">Скоро</span>
+                    </div>
+                    <div class="row">
+                      <div class="row-text">
+                        <p class="row-title">Управление файлами</p>
+                        <p class="row-desc">Чтение и создание файлов в разрешённых папках.</p>
+                      </div>
+                      <span class="status">Скоро</span>
+                    </div>
+                    <div class="row">
+                      <div class="row-text">
+                        <p class="row-title">Разрешения</p>
+                        <p class="row-desc">Что можно делать без вопроса, а что только с подтверждением.</p>
+                      </div>
+                      <span class="status">Скоро</span>
+                    </div>
+                  </section>
+
+                  <!-- Власть: закрыта. Содержимое размыто и недоступно, поверх него экран замка.
+                       Разблокируется кодом: setPowerUnlocked(true) из src/model/view.ts.
+                       Текст замка намеренно ничего не объясняет. -->
+                  <section class="model-pane model-pane-power is-locked" id="model-pane-power" data-model-pane="power" role="tabpanel" aria-labelledby="model-tab-power" hidden>
+                    <div class="model-power-content" aria-hidden="true" inert>
+                      <h3 class="panel-title">Власть</h3>
+                      <div class="row"><div class="model-ghost"><i></i><i></i></div><span class="status">Скоро</span></div>
+                      <div class="row"><div class="model-ghost"><i></i><i></i></div><span class="status">Скоро</span></div>
+                      <div class="row"><div class="model-ghost"><i></i><i></i></div><span class="status">Скоро</span></div>
+                    </div>
+                    <div class="model-lockscreen" role="status">
+                      <span class="model-lockpill">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="7" width="9" height="6.5" rx="1.8" /><path d="M5.5 7V5.2a2.5 2.5 0 0 1 5 0V7" /></svg>
+                        Доступ закрыт
+                      </span>
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- Управление -->
         <section class="view" data-view="control" inert aria-hidden="true">
           <div class="page">
@@ -379,7 +557,7 @@
               </header>
 
               <div class="cards">
-                <article class="mod">
+                <article class="mod mod-link" data-open-view="model" role="button" tabindex="0" aria-label="Открыть настройки модели">
                   <span class="mod-ico" aria-hidden="true">
                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="10" height="10" rx="2.5" /><path d="M6 6.5h4M6 9.5h2.5" /></svg>
                   </span>

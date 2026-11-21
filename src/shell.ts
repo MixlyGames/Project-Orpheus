@@ -28,20 +28,21 @@ import {
 import { initAchievementsView, refreshAchievementsView } from "./achievements/view";
 import { initMemoriesDev } from "./memories/dev";
 import { initDevMode } from "./dev";
+import { initModelView } from "./model/view";
 
 
 // ---------- Разделы ----------
 
-export type ViewId = "chat" | "history" | "avatar" | "achievements" | "control" | "settings" | "debug";
+export type ViewId = "chat" | "history" | "avatar" | "achievements" | "model" | "control" | "settings" | "debug";
 
 // Порядок для направления сдвига при смене раздела. «Аватар» открывается из «Управления».
-const VIEW_ORDER: ViewId[] = ["chat", "history", "control", "avatar", "achievements", "settings", "debug"];
+const VIEW_ORDER: ViewId[] = ["chat", "history", "control", "model", "avatar", "achievements", "settings", "debug"];
 
 // Разделы, которые открываются по Ctrl + 1…5 (у «Аватара» своей кнопки на панели нет).
 const HOTKEY_VIEWS: ViewId[] = ["chat", "history", "control", "settings", "debug"];
 
 // Вложенные разделы подсвечивают на панели кнопку своего родителя.
-const DOCK_PARENT: Partial<Record<ViewId, ViewId>> = { avatar: "control", achievements: "control" };
+const DOCK_PARENT: Partial<Record<ViewId, ViewId>> = { avatar: "control", achievements: "control", model: "control" };
 
 function dockView(id: ViewId): ViewId {
   return DOCK_PARENT[id] ?? id;
@@ -228,7 +229,7 @@ dockBtns.forEach((b) => {
 // возвращает в «Управление».
 document.addEventListener("keydown", (e) => {
   if (!document.body.classList.contains("is-chat")) return;
-  const nested = current === "avatar" || current === "achievements";
+  const nested = current === "avatar" || current === "achievements" || current === "model";
   if (e.key === "Escape" && nested && !e.ctrlKey && !e.altKey && !e.metaKey) {
     showView("control");
     return;
@@ -567,6 +568,7 @@ export function initShell(h: ShellHooks): void {
   safeInit("Дебаггер", initDebug);
   safeInit("Аватар", initAvatarView);
   safeInit("Достижения", initAchievementsView);
+  safeInit("Модель", initModelView);
   safeInit("Воспоминания", initMemoriesDev);
 
   safeInit("Режим разработчика", initDevMode);
