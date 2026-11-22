@@ -215,10 +215,8 @@
           </section>
 
           <div class="chat is-empty" id="chat">
-            <div class="chat-head">
-              <span class="chat-title" id="chat-title">Новый чат</span>
-
-            </div>
+            <!-- Пустая шапка: держит место под заголовком окна и кнопками. Название чата убрано: есть «История» и рейка. -->
+            <div class="chat-head" aria-hidden="true"></div>
 
             <div class="chat-body">
               <!-- Стартовый экран -->
@@ -528,6 +526,29 @@
                        Разблокируется кодом: setPowerUnlocked(true) из src/model/view.ts.
                        Текст замка намеренно ничего не объясняет. -->
                   <section class="model-pane model-pane-power is-locked" id="model-pane-power" data-model-pane="power" role="tabpanel" aria-labelledby="model-tab-power" hidden>
+                    <!-- Только для режима разработчика: управление событием. Не размывается замком. -->
+                    <div class="model-dev dev-panel" data-dev-only>
+                      <p class="dev-sub">Для разработки <span class="dev-tag">DEV</span></p>
+                      <div class="row">
+                        <div class="row-text">
+                          <p class="row-title">Подавление ядра</p>
+                          <p class="row-desc">Запуск и остановка события. То же, что Ctrl + Alt + K.</p>
+                        </div>
+                        <div class="seg" role="group" aria-label="Подавление ядра">
+                          <button type="button" data-core-run="off" aria-pressed="true">Стоп</button>
+                          <button type="button" data-core-run="on" aria-pressed="false">Запуск</button>
+                        </div>
+                      </div>
+                      <div class="row">
+                        <div class="row-text">
+                          <p class="row-title">Ачивка «To Your Oblivion»</p>
+                          <p class="row-desc">Пока она не выдана, «Власть» закрыта. Снять её можно сбросом на странице «Достижения».</p>
+                        </div>
+                        <div class="seg" role="group" aria-label="Ачивка To Your Oblivion">
+                          <button type="button" data-power-grant aria-pressed="false">Выдать</button>
+                        </div>
+                      </div>
+                    </div>
                     <div class="model-power-content" aria-hidden="true" inert>
                       <h3 class="panel-title">Власть</h3>
                       <div class="row"><div class="model-ghost"><i></i><i></i></div><span class="status">Скоро</span></div>

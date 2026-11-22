@@ -24,7 +24,6 @@ function byId<T extends HTMLElement>(id: string): T {
 const stage = document.querySelector<HTMLElement>(".stage");
 const app = byId<HTMLElement>("app");
 const chatEl = byId<HTMLElement>("chat");
-const chatTitle = byId<HTMLElement>("chat-title");
 
 const emptyTitle = byId<HTMLElement>("empty-title");
 const emptySub = byId<HTMLElement>("empty-sub");
@@ -176,7 +175,6 @@ function scrollToBottom(smooth = false): void {
 function renderThread(): void {
   thread.replaceChildren();
   const chat = store.getActive();
-  chatTitle.textContent = chat?.title ?? "Новый чат";
 
   let shown = 0;
   for (const m of chat?.messages ?? []) {

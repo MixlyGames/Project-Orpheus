@@ -1,0 +1,46 @@
+/* Своё меню правой кнопки: вырезать, копировать, вставить. */
+.ctx-menu {
+  position: fixed;
+  z-index: 10000;
+  min-width: 200px;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(var(--fg-rgb), 0.08);
+  backdrop-filter: blur(24px) saturate(120%);
+  box-shadow: 0 16px 40px rgba(var(--shadow-rgb), 0.45);
+}
+
+.ctx-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: rgb(var(--fg-rgb));
+  font: inherit;
+  font-size: 0.86rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ctx-key {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.ctx-item:hover:not(:disabled),
+.ctx-item:focus-visible {
+  background: rgba(var(--fg-rgb), 0.1);
+  outline: none;
+}
+
+.ctx-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

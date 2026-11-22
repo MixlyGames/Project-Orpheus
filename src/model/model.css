@@ -97,6 +97,19 @@
   position: relative;
 }
 
+/* Блок управления для режима разработчика: лежит над размытым содержимым и не блокируется замком. */
+.model-dev {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 16px;
+  padding: 4px 14px 10px;
+  border-radius: 14px;
+}
+
+.model-dev .dev-sub {
+  margin-top: 8px;
+}
+
 /* Замок на кнопке: маленький, прижат к правому краю. */
 .model-lock {
   display: none;

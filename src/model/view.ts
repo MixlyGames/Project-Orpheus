@@ -2,40 +2,29 @@
 // Вкладки: Провайдер, Отношения, Память, Тулзы, Власть. Здесь только переключение вкладок,
 // содержимое лежит в index.html. Рейки в этом разделе нет: она существует только внутри «Чата».
 //
-// «Власть» закрыта: на кнопке маленький замок, а содержимое окна размыто, и поверх него лежит
-// компактная плашка (см. model.css). Открывается из любого места кода вызовом
-// setPowerUnlocked(true); состояние хранится в localStorage и переживает перезапуск.
+// «Власть» открыта, если выдано достижение «To Your Oblivion» (id "spread", «Вы подавили ядро
+// Орфеи»), и закрыта, если нет. Отдельного флага нет: пока достижения нет, на кнопке маленький
+// замок, а содержимое окна размыто (см. model.css). Выдача достижения открывает вкладку сразу.
+//
+// В режиме разработчика во вкладке «Власть» есть блок управления: запуск и остановка подавления
+// ядра (то же, что Ctrl + Alt + K) и выдача этого достижения для проверки.
 
 import "./model.css";
+import { isUnlocked, onAchievementsChange, unlockAchievement } from "../achievements/store";
+import {
+  beginCoreSuppression,
+  endCoreSuppression,
+  isCoreSuppressionActive,
+  onCoreSuppressionChange,
+} from "../core/suppression";
 
 type TabId = "provider" | "relations" | "memory" | "tools" | "power";
 
-const POWER_KEY = "orpheus.model.power";
-
-function loadPower(): boolean {
-  try {
-    return localStorage.getItem(POWER_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-let powerUnlocked = loadPower();
-let applyPower: (() => void) | null = null;
+/** Достижение, от которого зависит доступ к «Власти». */
+const POWER_ACHIEVEMENT = "spread";
 
 export function isPowerUnlocked(): boolean {
-  return powerUnlocked;
-}
-
-/** Открывает или снова закрывает вкладку «Власть». */
-export function setPowerUnlocked(on: boolean): void {
-  powerUnlocked = on;
-  try {
-    localStorage.setItem(POWER_KEY, on ? "1" : "0");
-  } catch (err) {
-    console.warn("Orpheus: не удалось сохранить состояние вкладки", err);
-  }
-  applyPower?.();
+  return isUnlocked(POWER_ACHIEVEMENT);
 }
 
 export function initModelView(): void {
@@ -47,6 +36,8 @@ export function initModelView(): void {
   const powerTab = tabs.find((t) => t.dataset.modelTab === "power");
   const powerPane = panes.find((p) => p.dataset.modelPane === "power");
   const powerContent = powerPane?.querySelector<HTMLElement>(".model-power-content");
+  const grantBtn = root.querySelector<HTMLButtonElement>("[data-power-grant]");
+  const runBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-core-run]"));
 
   function select(id: TabId, focus = false): void {
     for (const tab of tabs) {
@@ -63,17 +54,40 @@ export function initModelView(): void {
     }
   }
 
-  // Замок на кнопке, размытие и плашка зависят только от флага.
-  applyPower = () => {
-    const locked = !powerUnlocked;
-    powerTab?.classList.toggle("is-locked", locked);
-    powerPane?.classList.toggle("is-locked", locked);
+  // Замок на кнопке, размытие и плашка зависят только от достижения.
+  const applyPower = (): void => {
+    const open = isPowerUnlocked();
+    powerTab?.classList.toggle("is-locked", !open);
+    powerPane?.classList.toggle("is-locked", !open);
     if (powerContent) {
-      powerContent.inert = locked;
-      powerContent.setAttribute("aria-hidden", String(locked));
+      powerContent.inert = !open;
+      powerContent.setAttribute("aria-hidden", String(!open));
+    }
+    if (grantBtn) {
+      grantBtn.disabled = open;
+      grantBtn.setAttribute("aria-pressed", String(open));
     }
   };
   applyPower();
+  onAchievementsChange(applyPower);
+
+  // Блок для разработки: запуск и остановка подавления, выдача достижения.
+  const syncRun = (): void => {
+    const on = isCoreSuppressionActive();
+    runBtns.forEach((b) => b.setAttribute("aria-pressed", String((b.dataset.coreRun === "on") === on)));
+  };
+  runBtns.forEach((b) =>
+    b.addEventListener("click", () => {
+      if (b.dataset.coreRun === "on") beginCoreSuppression();
+      else endCoreSuppression();
+    }),
+  );
+  onCoreSuppressionChange(syncRun);
+  syncRun();
+
+  grantBtn?.addEventListener("click", () => {
+    unlockAchievement(POWER_ACHIEVEMENT);
+  });
 
   tabs.forEach((tab, i) => {
     tab.addEventListener("click", () => select(tab.dataset.modelTab as TabId));
