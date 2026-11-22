@@ -37,3 +37,6 @@ dist-ssr
 
 # Rust logs and temporary files
 *.rs.bk
+
+CORE_SUPPRESSION.md
+.gitignore

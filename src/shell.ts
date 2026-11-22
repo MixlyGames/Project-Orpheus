@@ -29,6 +29,7 @@ import { initAchievementsView, refreshAchievementsView } from "./achievements/vi
 import { initMemoriesDev } from "./memories/dev";
 import { initDevMode } from "./dev";
 import { initModelView } from "./model/view";
+import { initCoreSuppression } from "./core/suppression";
 
 
 // ---------- Разделы ----------
@@ -570,6 +571,7 @@ export function initShell(h: ShellHooks): void {
   safeInit("Достижения", initAchievementsView);
   safeInit("Модель", initModelView);
   safeInit("Воспоминания", initMemoriesDev);
+  safeInit("Подавление ядра", initCoreSuppression);
 
   safeInit("Режим разработчика", initDevMode);
   showView("chat");
