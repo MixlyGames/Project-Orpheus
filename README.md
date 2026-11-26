@@ -26,11 +26,11 @@
 
 | Чат | Аватар |
 | --- | --- |
-| ![Чат](docs/screenshots/chat.png) | ![Аватар](docs/screenshots/avatar.png) |
+| ![Чат](src/docs/screenshots/chat.png) | ![Аватар](src/docs/screenshots/avatar.png) |
 
 | Управление | Настройки и фон |
 | --- | --- |
-| ![Управление](docs/screenshots/control.png) | ![Настройки](docs/screenshots/settings.png) |
+| ![Управление](src/docs/screenshots/control.png) | ![Настройки](src/docs/screenshots/settings.png) |
 
 ## Тихий уголок
 
