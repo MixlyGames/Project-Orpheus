@@ -1,4 +1,7 @@
 // Выбранная модель аватара хранится в IndexedDB целиком, чтобы не выбирать файл заново при каждом запуске.
+// Хранилище общее для всех окон приложения, поэтому его читает и окно-пет Орфеи.
+
+import { notifyAvatarModelChanged } from "./channel";
 
 const DB_NAME = "orpheus.avatar";
 const STORE = "files";
@@ -43,6 +46,7 @@ async function run<T>(
 
 export async function saveModel(model: SavedModel): Promise<void> {
   await run("readwrite", (s) => s.put(model, KEY));
+  notifyAvatarModelChanged();
 }
 
 export async function loadSavedModel(): Promise<SavedModel | null> {
@@ -55,4 +59,5 @@ export async function loadSavedModel(): Promise<SavedModel | null> {
 
 export async function clearSavedModel(): Promise<void> {
   await run("readwrite", (s) => s.delete(KEY));
+  notifyAvatarModelChanged();
 }

@@ -1,10 +1,9 @@
 // Панель разработчика в разделе «Аватар»: настройка модели «на лету» и сохранение значений для неё.
 // Контейнер #avatar-dev помечен data-dev-only, поэтому виден только при включённом режиме разработчика.
 
-import { describeError, log } from "../log";
-import { DEFAULT_TUNING, type AvatarEngine, type ModelInfo, type Tuning } from "./engine";
-
-const KEY = "orpheus.avatar.tuning";
+import { log } from "../log";
+import { DEFAULT_TUNING, type AvatarEngine, type ModelInfo } from "./engine";
+import { loadTuning, saveTuning } from "./tuning-store";
 
 let engine: AvatarEngine | null = null;
 
@@ -12,40 +11,9 @@ function container(): HTMLElement | null {
   return document.getElementById("avatar-dev");
 }
 
-// ---------- Сохранение значений для конкретной модели (по имени файла) ----------
-
-function readAll(): Record<string, unknown> {
-  try {
-    const raw = localStorage.getItem(KEY);
-    const data: unknown = raw ? JSON.parse(raw) : {};
-    return data && typeof data === "object" ? (data as Record<string, unknown>) : {};
-  } catch {
-    return {};
-  }
-}
-
-function num(value: unknown, fallback: number, min: number, max: number): number {
-  return typeof value === "number" && Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
-}
-
-function loadTuning(fileName: string): Tuning {
-  const raw = readAll()[fileName];
-  const t = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
-  return {
-    armDown: num(t.armDown, DEFAULT_TUNING.armDown, -1.5, 1.6),
-    breath: num(t.breath, DEFAULT_TUNING.breath, 0, 0.05),
-    autoBlink: typeof t.autoBlink === "boolean" ? t.autoBlink : DEFAULT_TUNING.autoBlink,
-  };
-}
-
-function saveTuning(fileName: string, tuning: Tuning): void {
-  try {
-    const all = readAll();
-    all[fileName] = tuning;
-    localStorage.setItem(KEY, JSON.stringify(all));
-  } catch (err) {
-    log("system", "warn", "Не удалось сохранить настройки модели.", describeError(err));
-  }
+/** Сохраняет значения для модели; окно-пет Орфеи применит их после сигнала (см. tuning-store.ts). */
+function saveForModel(fileName: string, eng: AvatarEngine): void {
+  if (!saveTuning(fileName, eng.getTuning())) log("system", "warn", "Не удалось сохранить настройки модели.");
 }
 
 // ---------- Мелкие помощники для разметки ----------
@@ -186,7 +154,7 @@ function build(eng: AvatarEngine, fileName: string, info: ModelInfo): void {
         eng.resetExpressions();
         build(eng, fileName, info);
       },
-      () => saveTuning(fileName, eng.getTuning()),
+      () => saveForModel(fileName, eng),
     ),
   );
 
