@@ -4,9 +4,11 @@
 import "./avatar.css";
 import { describeError, log } from "../log";
 import { getSettings, onSettings, type AvatarMode } from "../settings";
-import { AvatarEngine, type ModelInfo } from "./engine";
+import { AvatarEngine, describeFormat, type ModelInfo } from "./engine";
+import { looksLikeFbx, packBundle, TEXTURE_EXT } from "./bundle";
 import { mountAvatarDev, unmountAvatarDev } from "./dev";
-import { clearSavedModel, loadSavedModel, saveModel } from "./store";
+import { clearSavedModel, libraryId, loadSavedModel, removeLibraryEntry, saveModel } from "./store";
+import { initAvatarSidebar, rememberModel, showAvatarSidebar, syncAvatarSidebar } from "./sidebar";
 
 const TEXT: Record<
   AvatarMode,
@@ -14,10 +16,10 @@ const TEXT: Record<
 > = {
   "3d": {
     emptyTitle: "3D-модель не выбрана",
-    emptyDesc: "Выбери файл .vrm, и персонаж появится здесь: он дышит и моргает.",
+    emptyDesc: "Выбери файл .vrm или .fbx, и персонаж появится здесь: он дышит и моргает.",
     srcTitle: "Файл модели",
-    srcDesc: "Формат VRM (версии 0.x и 1.0). Пока не выбран.",
-    pick: "Выбрать VRM…",
+    srcDesc: "Форматы: VRM (0.x и 1.0) и FBX (можно сразу вместе с текстурами). Пока не выбран.",
+    pick: "Выбрать модель…",
     states: "Покой, речь, жесты и мимика (скоро).",
   },
   "2d": {
@@ -93,7 +95,10 @@ export function renderAvatarView(): void {
   srcTitleEl.textContent = t.srcTitle;
   statesEl.textContent = t.states;
 
-  const described = mode === "3d" && loaded ? `${loaded.info.name || loaded.fileName} · VRM ${loaded.info.vrmVersion} · ${formatSize(loaded.size)}` : t.srcDesc;
+  const described =
+    mode === "3d" && loaded
+      ? `${loaded.info.name || loaded.fileName} · ${describeFormat(loaded.info)} · ${formatSize(loaded.size)}${loaded.info.warnings.length > 0 ? " · " + loaded.info.warnings[0] : ""}`
+      : t.srcDesc;
   srcDescEl.textContent = error || described;
   srcDescEl.classList.toggle("is-error", error !== "");
 
@@ -113,15 +118,31 @@ export function renderAvatarView(): void {
   }
   faceHost?.closest(".agent")?.classList.toggle("has-face", show3d);
   engine?.setActive((visible || faceHost !== null) && show3d);
+  syncAvatarSidebar();
+}
+
+/** Редактор текстур изменил комплект FBX: сохраняем новую версию вместо старой, без дубля в библиотеке. */
+async function commitModelData(packed: ArrayBuffer): Promise<void> {
+  const eng = engine;
+  const current = loaded;
+  if (!eng || !current) return;
+  await removeLibraryEntry(libraryId(current.fileName, current.size)).catch(() => undefined);
+  const next: LoadedModel = { ...current, size: packed.byteLength, info: { ...current.info, warnings: [] } };
+  loaded = next;
+  await saveModel({ name: next.fileName, data: packed });
+  await rememberModel(eng, next.fileName, packed, next.info);
+  log("system", "info", "Текстуры модели сохранены (" + formatSize(packed.byteLength) + ").");
+  renderAvatarView();
 }
 
 async function applyData(data: ArrayBuffer, fileName: string, persist: boolean): Promise<void> {
   const eng = ensureEngine();
   if (!eng) throw new Error("3D-движок не запустился.");
-  const info = await eng.loadVrm(data);
-  mountAvatarDev(eng, fileName, info);
+  const info = await eng.loadModel(data);
+  mountAvatarDev(eng, fileName, info, commitModelData);
   loaded = { fileName, size: data.byteLength, info };
   error = "";
+  void rememberModel(eng, fileName, data, info);
   if (persist) {
     await saveModel({ name: fileName, data }).catch((err) => {
       log("system", "warn", "Модель загружена, но не сохранилась между запусками.", describeError(err));
@@ -130,20 +151,52 @@ async function applyData(data: ArrayBuffer, fileName: string, persist: boolean):
   log(
     "system",
     "info",
-    `Модель аватара загружена: ${info.name || fileName} (VRM ${info.vrmVersion}, ${formatSize(data.byteLength)}).`,
+    `Модель аватара загружена: ${info.name || fileName} (${describeFormat(info)}, ${formatSize(data.byteLength)}).`,
   );
+  for (const w of info.warnings) log("system", "warn", w);
 }
 
-async function loadFile(file: File): Promise<void> {
+/** Выбранные файлы: модель (.vrm или .fbx) и, для FBX, картинки текстур. Остальное игнорируется. */
+async function loadFiles(files: File[]): Promise<void> {
   busy = true;
   error = "";
   renderAvatarView();
   try {
-    const data = await file.arrayBuffer();
-    if (!looksLikeGlb(data)) throw new Error("Это не файл VRM: ожидается .vrm (формат glTF Binary).");
-    await applyData(data, file.name, true);
+    const model = files.find((f) => /\.(vrm|fbx)$/i.test(f.name));
+    if (!model) throw new Error("Среди выбранных файлов нет модели: нужен .vrm или .fbx.");
+    const data = await model.arrayBuffer();
+    if (/\.vrm$/i.test(model.name)) {
+      if (!looksLikeGlb(data)) throw new Error("Это не файл VRM: ожидается .vrm (формат glTF Binary).");
+      await applyData(data, model.name, true);
+    } else {
+      if (!looksLikeFbx(data)) throw new Error("Это не файл FBX: ожидается FBX версии 7000 или новее.");
+      // Текстуры, выбранные вместе с моделью, пакуем в один комплект, чтобы они сохранились между запусками.
+      const textures = await Promise.all(
+        files
+          .filter((f) => f !== model && TEXTURE_EXT.test(f.name))
+          .map(async (f) => ({ name: f.name, data: await f.arrayBuffer() })),
+      );
+      const packed = textures.length > 0 ? packBundle([{ name: model.name, data }, ...textures]) : data;
+      await applyData(packed, model.name, true);
+    }
   } catch (err) {
     error = err instanceof Error ? err.message : "Не удалось открыть файл.";
+    log("system", "error", `Не удалось загрузить модель: ${error}`, describeError(err));
+  } finally {
+    busy = false;
+    renderAvatarView();
+  }
+}
+
+/** Выбор модели из библиотеки («Модели»): файл уже лежит в хранилище, проверять формат не нужно. */
+async function useModel(name: string, data: ArrayBuffer): Promise<void> {
+  busy = true;
+  error = "";
+  renderAvatarView();
+  try {
+    await applyData(data, name, true);
+  } catch (err) {
+    error = err instanceof Error ? err.message : "Не удалось открыть модель.";
     log("system", "error", `Не удалось загрузить модель: ${error}`, describeError(err));
   } finally {
     busy = false;
@@ -154,10 +207,11 @@ async function loadFile(file: File): Promise<void> {
 function pickFile(): void {
   const input = document.createElement("input");
   input.type = "file";
-  input.accept = ".vrm";
+  input.accept = ".vrm,.fbx,.png,.jpg,.jpeg,.webp,.bmp,.tga";
+  input.multiple = true;
   input.addEventListener("change", () => {
-    const file = input.files?.[0];
-    if (file) void loadFile(file);
+    const picked = Array.from(input.files ?? []);
+    if (picked.length > 0) void loadFiles(picked);
   });
   input.click();
 }
@@ -202,6 +256,13 @@ export function initAvatarView(): void {
   pickBtn.addEventListener("click", pickFile);
   clearBtn.addEventListener("click", () => void clearModel());
   onSettings(renderAvatarView);
+  initAvatarSidebar({
+    pick: pickFile,
+    use: useModel,
+    activeId: () => (loaded ? libraryId(loaded.fileName, loaded.size) : null),
+    busy: () => busy,
+    clearActive: clearModel,
+  });
 
   ready = true;
   renderAvatarView();
@@ -210,6 +271,7 @@ export function initAvatarView(): void {
 export function showAvatarView(): void {
   if (!ready) return;
   visible = true;
+  showAvatarSidebar();
   if (!restored) void restore();
   renderAvatarView();
 }

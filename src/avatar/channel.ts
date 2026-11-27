@@ -1,10 +1,11 @@
 // Связь между окнами про аватар. Главное окно и окно-пет работают в одном приложении и делят
 // хранилище, но событий об изменениях IndexedDB и localStorage между окнами нет, поэтому о них
-// сообщаем сами. Сигналы: "model" (выбрана или удалена модель) и "tuning" (сохранены настройки модели).
+// сообщаем сами. Сигналы: "model" (выбрана или удалена модель), "tuning" (сохранены настройки модели)
+// и "graphics" (изменены настройки графики пета).
 
 const NAME = "orpheus.avatar";
 
-type AvatarSignal = "model" | "tuning";
+type AvatarSignal = "model" | "tuning" | "graphics" | "anims";
 
 function send(signal: AvatarSignal): void {
   try {
@@ -34,6 +35,11 @@ export function notifyAvatarTuningChanged(): void {
   send("tuning");
 }
 
+/** Сообщает остальным окнам, что настройки графики изменились. */
+export function notifyAvatarGraphicsChanged(): void {
+  send("graphics");
+}
+
 /** Подписка на смену модели в другом окне. Возвращает функцию отписки. */
 export function onAvatarModelChanged(cb: () => void): () => void {
   return listen("model", cb);
@@ -42,4 +48,19 @@ export function onAvatarModelChanged(cb: () => void): () => void {
 /** Подписка на сохранение настроек модели в другом окне. Возвращает функцию отписки. */
 export function onAvatarTuningChanged(cb: () => void): () => void {
   return listen("tuning", cb);
+}
+
+/** Подписка на смену настроек графики в другом окне. Возвращает функцию отписки. */
+export function onAvatarGraphicsChanged(cb: () => void): () => void {
+  return listen("graphics", cb);
+}
+
+/** Сообщает остальным окнам, что библиотека анимаций изменилась (добавили, удалили, сменили слот). */
+export function notifyAvatarAnimsChanged(): void {
+  send("anims");
+}
+
+/** Подписка на изменение библиотеки анимаций в другом окне. Возвращает функцию отписки. */
+export function onAvatarAnimsChanged(cb: () => void): () => void {
+  return listen("anims", cb);
 }

@@ -302,6 +302,25 @@
                 <p class="subtitle">Настройка и подключение персонажа Орфеи.</p>
               </header>
 
+              <div class="model-layout">
+                <nav class="model-tabs" role="tablist" aria-orientation="vertical" aria-label="Разделы аватара">
+                  <button class="model-tab is-active" type="button" role="tab" id="avatar-tab-stage" data-avatar-tab="stage" aria-selected="true" aria-controls="avatar-pane-stage">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="5.5" r="2.5" /><path d="M3 13.5c.4-2.6 2.4-4 5-4s4.6 1.4 5 4" /></svg>
+                    <span>Сцена</span>
+                  </button>
+                  <button class="model-tab" type="button" role="tab" id="avatar-tab-models" data-avatar-tab="models" aria-selected="false" aria-controls="avatar-pane-models" tabindex="-1">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1.2" /><rect x="9" y="2.5" width="4.5" height="4.5" rx="1.2" /><rect x="2.5" y="9" width="4.5" height="4.5" rx="1.2" /><rect x="9" y="9" width="4.5" height="4.5" rx="1.2" /></svg>
+                    <span>Модели</span>
+                  </button>
+                  <button class="model-tab" type="button" role="tab" id="avatar-tab-config" data-avatar-tab="config" aria-selected="false" aria-controls="avatar-pane-config" tabindex="-1">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 5h6M11.5 5h2M2.5 11h2M7.5 11h6" /><circle cx="10" cy="5" r="1.5" /><circle cx="6" cy="11" r="1.5" /></svg>
+                    <span>Конфиг</span>
+                  </button>
+                </nav>
+
+                <div class="model-window avatar-window">
+                <!-- Сцена: предпросмотр и выбор файла -->
+                <section class="model-pane avatar-pane is-active" id="avatar-pane-stage" data-avatar-pane="stage" role="tabpanel" aria-labelledby="avatar-tab-stage">
               <section class="panel">
                 <h3 class="panel-title">Режим</h3>
                 <div class="row">
@@ -310,7 +329,7 @@
                     <p class="row-desc">3D-модель или 2D-спрайты (пиксельная или рисованная анимация).</p>
                   </div>
                   <div class="seg" role="group" aria-label="Тип аватара">
-                    <button type="button" data-avatar-opt="3d" aria-pressed="true">3D · VRM</button>
+                    <button type="button" data-avatar-opt="3d" aria-pressed="true">3D</button>
                     <button type="button" data-avatar-opt="2d" aria-pressed="false">2D · Спрайты</button>
                   </div>
                 </div>
@@ -363,6 +382,75 @@
                 <h3 class="panel-title">Настройка модели<span class="dev-tag">DEV BUILD</span></h3>
                 <p class="dev-empty">Загрузи модель, чтобы её настроить.</p>
               </section>
+                </section>
+
+                <!-- Модели: библиотека карточек с бюстом. Заполняется из src/avatar/sidebar.ts. -->
+                <section class="model-pane avatar-pane" id="avatar-pane-models" data-avatar-pane="models" role="tabpanel" aria-labelledby="avatar-tab-models" hidden>
+                  <section class="panel">
+                    <h3 class="panel-title">Модели</h3>
+                    <div class="row">
+                      <div class="row-text">
+                        <p class="row-title">Библиотека</p>
+                        <p class="row-desc" id="avatar-lib-desc">Пока пусто.</p>
+                      </div>
+                      <div class="avatar-lib-actions">
+                        <button class="btn avatar-lib-clear" id="avatar-lib-clear" type="button" hidden>Очистить библиотеку</button>
+                        <button class="btn" id="avatar-lib-add" type="button">Добавить модель…</button>
+                      </div>
+                    </div>
+                    <div class="avatar-cards" id="avatar-cards" role="list"></div>
+                    <p class="avatar-cards-empty" id="avatar-cards-empty">Здесь появятся все модели, которые ты выбирал. Нажми на карточку, чтобы переключиться на неё.</p>
+                  </section>
+                </section>
+
+                <!-- Конфиг: графика окна-пета. Применяется сразу (src/avatar/graphics-store.ts). -->
+                <section class="model-pane avatar-pane" id="avatar-pane-config" data-avatar-pane="config" role="tabpanel" aria-labelledby="avatar-tab-config" hidden>
+                  <section class="panel">
+                    <h3 class="panel-title">Графика пета</h3>
+                    <div class="row">
+                      <div class="row-text">
+                        <p class="row-title">Качество картинки</p>
+                        <p class="row-desc">Потолок разрешения отрисовки. Ниже: легче видеокарте, но мелкие детали мягче.</p>
+                      </div>
+                      <div class="seg" role="group" aria-label="Качество картинки">
+                        <button type="button" data-gfx="quality" data-value="low" aria-pressed="false">Эконом</button>
+                        <button type="button" data-gfx="quality" data-value="mid" aria-pressed="true">Баланс</button>
+                        <button type="button" data-gfx="quality" data-value="high" aria-pressed="false">Максимум</button>
+                      </div>
+                    </div>
+                    <div class="row">
+                      <div class="row-text">
+                        <p class="row-title">Кадры в покое</p>
+                        <p class="row-desc">Пока Орфея стоит и только дышит и моргает. Чем меньше, тем меньше нагрузка.</p>
+                      </div>
+                      <div class="seg" role="group" aria-label="Кадры в покое">
+                        <button type="button" data-gfx="idleFps" data-value="15" aria-pressed="false">15</button>
+                        <button type="button" data-gfx="idleFps" data-value="24" aria-pressed="true">24</button>
+                        <button type="button" data-gfx="idleFps" data-value="30" aria-pressed="false">30</button>
+                        <button type="button" data-gfx="idleFps" data-value="60" aria-pressed="false">60</button>
+                      </div>
+                    </div>
+                    <div class="row">
+                      <div class="row-text">
+                        <p class="row-title">Кадры при движении</p>
+                        <p class="row-desc">Когда Орфею тащат или она падает.</p>
+                      </div>
+                      <div class="seg" role="group" aria-label="Кадры при движении">
+                        <button type="button" data-gfx="activeFps" data-value="30" aria-pressed="false">30</button>
+                        <button type="button" data-gfx="activeFps" data-value="60" aria-pressed="true">60</button>
+                      </div>
+                    </div>
+                    <div class="row">
+                      <div class="row-text">
+                        <p class="row-title">Сбросить графику</p>
+                        <p class="row-desc">Вернуть значения по умолчанию: Баланс, 24 кадра в покое, 60 при движении.</p>
+                      </div>
+                      <button class="btn" type="button" data-gfx-reset>Сбросить</button>
+                    </div>
+                  </section>
+                </section>
+                </div>
+              </div>
             </div>
           </div>
         </section>

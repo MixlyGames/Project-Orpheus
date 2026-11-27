@@ -139,7 +139,6 @@ export function playMemories(options: PlayOptions = {}): Playback {
     return { done: Promise.resolve(), stop: () => {} };
   }
 
-  const gap = options.gap ?? [900, 1900];
   const layer = createLayer(options.layer ?? "behind");
   const lines = new Set<Line>();
   const lives: Promise<void>[] = [];
